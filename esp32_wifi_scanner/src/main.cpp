@@ -26,7 +26,7 @@ const char* WIFI_PASSWORD = "0778844247zalo";
 // ==================== CẤU HÌNH FIREBASE ====================
 // ⚠️ THAY ĐỔI THÔNG TIN FIREBASE CỦA BẠN
 // Lấy từ Firebase Console → Project Settings → Realtime Database
-const char* FIREBASE_HOST = "YOUR_PROJECT_ID.firebaseio.com";  // ← Thay bằng Database URL (không có https://)
+const char* FIREBASE_HOST = "scanwifi-6d460-default-rtdb.asia-southeast1.firebasedatabase.app";
 const char* FIREBASE_AUTH = "";  // ← Để trống nếu dùng Test mode, hoặc điền Database Secret
 
 // ==================== CẤU HÌNH SCAN ====================

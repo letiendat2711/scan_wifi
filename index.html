@@ -19,12 +19,19 @@
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
             overflow-x: hidden;
-            background: #050510;
+            background: #020205; /* Màu nền vũ trụ */
             color: #e0e0e0;
             display: flex;
             flex-direction: column;
             align-items: center;
             position: relative;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
         }
 
         /* Animated mesh gradient background */
@@ -689,19 +696,133 @@
             cursor: pointer;
             font-weight: 500;
         }
+        /* ==================== INTRO 3D SCREEN ==================== */
+        #intro-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100vh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 100;
+            background: radial-gradient(circle at center, rgba(123,47,247,0.1) 0%, transparent 70%);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .intro-title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            margin: 40px 0 10px;
+            background: linear-gradient(90deg, #00d2ff, #a855f7, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            text-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+            animation: fadeInDown 1s both;
+        }
+
+        .intro-desc {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 40px;
+            text-align: center;
+            animation: fadeInUp 1s 0.2s both;
+        }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 3D CUBE ANIMATION */
+        .cube-container {
+            width: 150px; height: 150px;
+            perspective: 1000px;
+            animation: fadeIn 1s 0.4s both;
+            margin-bottom: 20px;
+        }
+        .cube {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: spinCube 8s linear infinite;
+        }
+        .face {
+            position: absolute; width: 150px; height: 150px;
+            background: rgba(123, 47, 247, 0.15);
+            border: 2px solid rgba(0, 210, 255, 0.5);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; font-weight: 800; color: #fff;
+            box-shadow: inset 0 0 40px rgba(0, 210, 255, 0.2);
+            backdrop-filter: blur(2px);
+        }
+        .front  { transform: rotateY(0deg) translateZ(75px); }
+        .back   { transform: rotateY(180deg) translateZ(75px); }
+        .right  { transform: rotateY(90deg) translateZ(75px); }
+        .left   { transform: rotateY(-90deg) translateZ(75px); }
+        .top    { transform: rotateX(90deg) translateZ(75px); }
+        .bottom { transform: rotateX(-90deg) translateZ(75px); }
+
+        @keyframes spinCube {
+            from { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+            to { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+        }
+
+        .btn-enter {
+            animation: fadeInUp 1s 0.6s both;
+            box-shadow: 0 0 30px rgba(123, 47, 247, 0.6);
+        }
+        .btn-enter:hover {
+            box-shadow: 0 0 50px rgba(123, 47, 247, 0.8), 0 0 100px rgba(0, 210, 255, 0.4);
+            transform: scale(1.05) translateZ(30px) !important;
+        }
+
+        /* Ẩn form chính ban đầu */
+        .content-wrapper {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.8s ease;
+            transform: scale(0.95);
+        }
+        .content-wrapper.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .intro-title { font-size: 2rem; }
+            .intro-desc { font-size: 1rem; }
+        }
     </style>
 </head>
 
 <body>
     <!-- Background layers -->
-    <div class="bg-gradient"></div>
+    <canvas id="bg-canvas"></canvas>
+    <div class="bg-gradient" style="opacity: 0.4; pointer-events: none;"></div>
     <div class="grid-floor"></div>
-    <div class="particles-container" id="particles"></div>
 
     <!-- Floating orbs -->
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
+
+    <!-- Intro Screen 3D -->
+    <div id="intro-screen">
+        <div class="cube-container">
+            <div class="cube">
+                <div class="face front">IoT</div>
+                <div class="face back">ESP</div>
+                <div class="face right">WIFI</div>
+                <div class="face left">WEB</div>
+                <div class="face top">3D</div>
+                <div class="face bottom">SYS</div>
+            </div>
+        </div>
+        <h1 class="intro-title">HỆ THỐNG QUẢN LÝ WIFI THÔNG QUA ESP32</h1>
+        <p class="intro-desc">Khám phá không gian công nghệ với giao diện 3D tương tác.</p>
+        <button class="btn btn-login btn-enter" id="btn-enter" style="width: auto; padding: 16px 40px; font-size: 1.1rem; border-radius: 50px; z-index: 200;">
+             🚀 BẮT ĐẦU TRẢI NGHIỆM
+        </button>
+    </div>
 
     <!-- Main content -->
     <div class="content-wrapper">
@@ -830,30 +951,110 @@
             formBox.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
         });
 
-        // ==================== FLOATING PARTICLES ====================
-        function createParticles() {
-            const container = document.getElementById('particles');
-            const colors = ['#7b2ff7', '#00d2ff', '#f472b6', '#22c55e', '#a855f7'];
+        // ==================== INTERACTIVE HD CANVAS BACKGROUND ====================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+        const mouse = { x: null, y: null, radius: 180 };
 
-            for (let i = 0; i < 35; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                const size = Math.random() * 4 + 2;
-                const color = colors[Math.floor(Math.random() * colors.length)];
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseout', () => {
+            mouse.x = undefined;
+            mouse.y = undefined;
+        });
 
-                particle.style.cssText = `
-                    width: ${size}px;
-                    height: ${size}px;
-                    background: ${color};
-                    box-shadow: 0 0 ${size * 3}px ${color};
-                    left: ${Math.random() * 100}%;
-                    animation-duration: ${Math.random() * 12 + 8}s;
-                    animation-delay: ${Math.random() * 10}s;
-                `;
-                container.appendChild(particle);
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 1.2;
+                this.speedY = (Math.random() - 0.5) * 1.2;
+                this.color = ['#00d2ff', '#7b2ff7', '#f472b6', '#22c55e'][Math.floor(Math.random() * 4)];
+            }
+            update() {
+                // Bounce edges
+                if (this.x > width || this.x < 0) this.speedX = -this.speedX;
+                if (this.y > height || this.y < 0) this.speedY = -this.speedY;
+
+                // Mouse interaction
+                if (mouse.x != null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < mouse.radius) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (mouse.radius - distance) / mouse.radius;
+                        this.x -= forceDirectionX * force * 2.5;
+                        this.y -= forceDirectionY * force * 2.5;
+                    }
+                }
+
+                this.x += this.speedX;
+                this.y += this.speedY;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
             }
         }
-        createParticles();
+
+        function initParticles() {
+            particles = [];
+            let numParticles = Math.floor((width * height) / 8500);
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function connectParticles() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let dx = particles[a].x - particles[b].x;
+                    let dy = particles[a].y - particles[b].y;
+                    let distance = dx * dx + dy * dy;
+
+                    // Vẽ line nếu hai hạt đủ gần
+                    if (distance < 18000) {
+                        ctx.strokeStyle = `rgba(123, 47, 247, ${1 - distance/18000})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            connectParticles();
+            requestAnimationFrame(animateCanvas);
+        }
+
+        resizeCanvas();
+        animateCanvas();
 
         // ==================== PARALLAX ON MOUSE (HERO) ====================
         document.addEventListener('mousemove', (e) => {
@@ -1062,6 +1263,24 @@
             }
 
             console.log('%c✅ Trang web của Đạt — 3D Premium Edition!', 'color: #7b2ff7; font-size: 16px; font-weight: bold');
+        });
+
+        // ==================== INTRO SCREEN LOGIC ====================
+        const introScreen = document.getElementById('intro-screen');
+        const btnEnter = document.getElementById('btn-enter');
+        const contentWrapper = document.querySelector('.content-wrapper');
+
+        btnEnter.addEventListener('click', () => {
+            // Hiệu ứng bay intro screen
+            introScreen.style.transform = 'scale(1.5) translateZ(500px)';
+            introScreen.style.opacity = '0';
+            introScreen.style.pointerEvents = 'none';
+            
+            // Hiển thị form login sau Delay
+            setTimeout(() => {
+                introScreen.style.display = 'none';
+                contentWrapper.classList.add('active');
+            }, 600);
         });
     </script>
 </body>

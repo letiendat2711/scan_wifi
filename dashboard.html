@@ -1025,13 +1025,13 @@
         // ==================== FIREBASE CONFIG ====================
         // ⚠️ THAY ĐỔI CẤU HÌNH FIREBASE CỦA BẠN TẠI ĐÂY
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",                                    // ← Thay
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",             // ← Thay
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",  // ← Thay
-            projectId: "YOUR_PROJECT_ID",                              // ← Thay
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",              // ← Thay
-            messagingSenderId: "000000000000",                         // ← Thay
-            appId: "1:000000000000:web:xxxxxxxxxx"                     // ← Thay
+            apiKey: "AIzaSyDEJtdVCIogRB84D-jaRWoyiE7QfV73HuQ",
+            authDomain: "scanwifi-6d460.firebaseapp.com",
+            databaseURL: "https://scanwifi-6d460-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "scanwifi-6d460",
+            storageBucket: "scanwifi-6d460.appspot.com",
+            messagingSenderId: "",
+            appId: ""
         };
 
         // Initialize Firebase
@@ -1120,6 +1120,25 @@
         }
 
         // ==================== FIREBASE REALTIME LISTENER ====================
+        let lastReceivedTime = 0;
+        let connectionMonitorTimer = null;
+
+        function updateConnectionStatus(isOnline, data = null) {
+            const statusDot = document.getElementById('firebase-status-dot');
+            const statusText = document.getElementById('firebase-status-text');
+            const statStatus = document.getElementById('stat-status');
+
+            if (isOnline && data) {
+                statusDot.style.background = '#22c55e';
+                statusText.textContent = `✅ Đã kết nối — ESP32: ${data.ip || 'N/A'} | WiFi: ${data.connectedSSID || 'N/A'}`;
+                statStatus.innerHTML = `<span class="status-dot online"></span> Online`;
+            } else {
+                statusDot.style.background = '#ef4444';
+                statusText.textContent = '❌ Mất kết nối tới ESP32 (Offline)';
+                statStatus.innerHTML = `<span class="status-dot offline"></span> Offline`;
+            }
+        }
+
         function initFirebaseListener() {
             const statusDot = document.getElementById('firebase-status-dot');
             const statusText = document.getElementById('firebase-status-text');
@@ -1133,13 +1152,11 @@
                     return;
                 }
 
-                // Update Firebase status
-                statusDot.style.background = '#22c55e';
-                statusText.textContent = `✅ Đã kết nối — ESP32: ${data.ip || 'N/A'} | WiFi: ${data.connectedSSID || 'N/A'}`;
+                // Cập nhật timestamp lần cuối nhận data
+                lastReceivedTime = Date.now();
+                updateConnectionStatus(true, data);
 
                 // Update status bar
-                document.getElementById('stat-status').innerHTML = 
-                    `<span class="status-dot online"></span> Online`;
                 document.getElementById('stat-ip').textContent = data.ip || '—';
                 document.getElementById('stat-uptime').textContent = formatUptime(data.uptimeSeconds || 0);
                 document.getElementById('stat-networks').textContent = data.totalNetworks || 0;
@@ -1160,6 +1177,15 @@
                 renderWiFiTable(networks);
 
                 showToast(`Dữ liệu mới: ${data.totalNetworks} mạng WiFi`, 'success');
+
+                // Xóa timer cũ (nếu có) và tạo timer mới kiểm tra timeout (30 giây)
+                if (connectionMonitorTimer) clearInterval(connectionMonitorTimer);
+                connectionMonitorTimer = setInterval(() => {
+                    // Nếu thời gian hiện tại lớn hơn thời gian nhận lần cuối + 30 giây (30000ms)
+                    if (Date.now() - lastReceivedTime > 30000) {
+                        updateConnectionStatus(false);
+                    }
+                }, 5000); // Kiểm tra mỗi 5s
 
             }, (error) => {
                 statusDot.style.background = '#ef4444';
