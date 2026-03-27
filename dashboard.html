@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Chủ - Lê Tiến Đạt</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #00ffff, #00bfff);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: #333;
+        }
+        .header {
+            background: rgba(255,255,255,0.9);
+            padding: 15px 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        h1 { color: #28a745; text-align: center; }
+        .info-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        .btn-logout {
+            background-color: #dc3545;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-logout:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="margin:0; color:#28a745;">Trang Web Của Đạt</h2>
+        <div>
+            <span id="user-display" style="font-weight:600; margin-right:15px;"></span>
+            <button class="btn-logout" id="btn-logout">Đăng Xuất</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>🎉 Chào mừng bạn đã đăng nhập!</h1>
+        
+        <div class="info-box" id="welcome-box">
+            <!-- JS sẽ điền thông tin ở đây -->
+        </div>
+
+        <div class="card">
+            <h3>📌 Thông tin tài khoản</h3>
+            <p><strong>Tên tài khoản:</strong> <span id="username-display"></span></p>
+            <p><strong>Thời gian đăng nhập:</strong> <span id="login-time"></span></p>
+            <p><strong>Trạng thái:</strong> <span style="color:#28a745;">Đã đăng nhập thành công ✅</span></p>
+        </div>
+
+        <div class="card">
+            <h3>🚀 Các chức năng demo</h3>
+            <ul>
+                <li>📊 Xem thống kê</li>
+                <li>🖼️ Quản lý ảnh</li>
+                <li>📝 Ghi chú cá nhân</li>
+                <li>🔧 Cài đặt tài khoản</li>
+            </ul>
+        </div>
+
+        <div style="text-align:center; margin-top:30px;">
+            <button class="btn-logout" id="btn-logout-bottom" style="padding:14px 40px;">Đăng Xuất</button>
+        </div>
+    </div>
+
+    <script>
+        const currentUser = localStorage.getItem('currentUser');
+
+        // Nếu chưa đăng nhập → quay về trang đăng nhập
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        } else {
+            // Hiển thị thông tin
+            document.getElementById('user-display').textContent = `Xin chào, ${currentUser}`;
+            document.getElementById('username-display').textContent = currentUser;
+            document.getElementById('welcome-box').innerHTML = `
+                <h2 style="color:#28a745;">Chào mừng <strong>${currentUser}</strong>!</h2>
+                <p>Bạn đang ở trang chủ sau khi đăng nhập thành công.</p>
+                <p style="color:#555;">Đây là trang mới hoàn toàn như bạn yêu cầu.</p>
+            `;
+            document.getElementById('login-time').textContent = new Date().toLocaleString('vi-VN');
+        }
+
+        // Đăng xuất
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('btn-logout').addEventListener('click', logout);
+        document.getElementById('btn-logout-bottom').addEventListener('click', logout);
+    </script>
+</body>
+</html>
