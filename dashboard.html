@@ -1127,15 +1127,32 @@
             const statusDot = document.getElementById('firebase-status-dot');
             const statusText = document.getElementById('firebase-status-text');
             const statStatus = document.getElementById('stat-status');
+            const emptyState = document.getElementById('empty-state');
 
             if (isOnline && data) {
                 statusDot.style.background = '#22c55e';
                 statusText.textContent = `✅ Đã kết nối — ESP32: ${data.ip || 'N/A'} | WiFi: ${data.connectedSSID || 'N/A'}`;
                 statStatus.innerHTML = `<span class="status-dot online"></span> Online`;
+                
+                document.getElementById('toolbar').style.display = 'flex';
+                document.getElementById('wifi-table-container').style.display = 'block';
+                emptyState.style.display = 'none';
             } else {
                 statusDot.style.background = '#ef4444';
                 statusText.textContent = '❌ Mất kết nối tới ESP32 (Offline)';
                 statStatus.innerHTML = `<span class="status-dot offline"></span> Offline`;
+                
+                document.getElementById('toolbar').style.display = 'none';
+                document.getElementById('wifi-table-container').style.display = 'none';
+                document.getElementById('stats-panel').style.display = 'none';
+                document.getElementById('chart-container').style.display = 'none';
+                
+                emptyState.style.display = 'block';
+                emptyState.innerHTML = `
+                    <div class="icon" style="opacity: 1; font-size: 64px;">🔌</div>
+                    <h4>Mất kết nối với ESP32</h4>
+                    <p>Hệ thống hiện tại đang Offline, không thể lấy danh sách WiFi mới nhất.</p>
+                `;
             }
         }
 
@@ -1164,27 +1181,33 @@
                     updateConnectionStatus(true, data);
                 }
 
-                // Update status bar
+                // Gán dữ liệu lên stat bar (vẫn hiện stat bar)
                 document.getElementById('stat-ip').textContent = data.ip || '—';
                 document.getElementById('stat-uptime').textContent = formatUptime(data.uptimeSeconds || 0);
                 document.getElementById('stat-networks').textContent = data.totalNetworks || 0;
                 document.getElementById('network-count').textContent = data.totalNetworks || 0;
 
                 statusBar.style.display = 'grid';
-                toolbar.style.display = 'flex';
-                tableContainer.style.display = 'block';
-                emptyState.style.display = 'none';
 
                 // Update last update time
                 const now = new Date();
                 document.getElementById('last-update-time').textContent = 
                     `Cập nhật: ${now.toLocaleTimeString('vi-VN')}`;
 
-                // Render data
                 const networks = data.networks || [];
-                renderWiFiTable(networks);
 
-                showToast(`Dữ liệu mới: ${data.totalNetworks} mạng WiFi`, 'success');
+                // Cập nhật trạng thái hiển thị hoặc ẩn bảng
+                const isOffline = Date.now() - actualTimestamp > 30000;
+                
+                if (isOffline) {
+                    // Cập nhật giao diện offline
+                    updateConnectionStatus(false);
+                } else {
+                    // Cập nhật giao diện online và render bảng
+                    updateConnectionStatus(true, data);
+                    renderWiFiTable(networks);
+                    showToast(`Dữ liệu mới: ${data.totalNetworks} mạng WiFi`, 'success');
+                }
 
                 // Xóa timer cũ (nếu có) và tạo timer mới kiểm tra timeout (30 giây)
                 if (connectionMonitorTimer) clearInterval(connectionMonitorTimer);
@@ -1363,8 +1386,17 @@
             wifiRef.once('value').then((snapshot) => {
                 const data = snapshot.val();
                 if (data && data.networks) {
-                    renderWiFiTable(data.networks);
-                    showToast('Đã tải lại dữ liệu', 'success');
+                    let actualTimestamp = data.timestamp || Date.now();
+                    const isOffline = Date.now() - actualTimestamp > 30000;
+                    
+                    if (isOffline) {
+                        updateConnectionStatus(false);
+                        showToast('ESP32 đang Offline, dữ liệu đã cũ.', 'error');
+                    } else {
+                        updateConnectionStatus(true, data);
+                        renderWiFiTable(data.networks);
+                        showToast('Đã tải lại dữ liệu mới nhất', 'success');
+                    }
                 }
             });
         });
