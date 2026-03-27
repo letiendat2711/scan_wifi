@@ -877,13 +877,18 @@
             <span class="clock-date" id="realtime-date">--</span>
         </div>
 
-        <!-- CONNECTION PANEL -->
+        <!-- FIREBASE CONNECTION PANEL -->
         <div class="connect-panel">
-            <h3>🔗 Kết nối ESP32</h3>
-            <div class="connect-row">
-                <input type="text" id="esp32-ip" placeholder="Nhập IP của ESP32 (ví dụ: 192.168.1.100)" 
-                       value="" autocomplete="off" spellcheck="false">
-                <button class="btn-connect" id="btn-connect">Kết nối</button>
+            <h3>🔥 Firebase Realtime Database</h3>
+            <div class="connect-row" style="justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="firebase-status-dot" style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                    <span id="firebase-status-text" style="font-size:0.9rem;">Đang kết nối Firebase...</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span style="font-size: 0.78rem; color: rgba(255,255,255,0.4);" id="last-update-time">Chưa có dữ liệu</span>
+                    <button class="btn-connect" id="btn-refresh-firebase">🔄 Tải lại</button>
+                </div>
             </div>
         </div>
 
@@ -996,12 +1001,16 @@
 
         <!-- EMPTY STATE -->
         <div class="empty-state" id="empty-state">
-            <div class="icon">📡</div>
-            <h4>Chưa kết nối ESP32</h4>
-            <p>Nhập địa chỉ IP của ESP32 ở trên và nhấn "Kết nối" để bắt đầu quét WiFi</p>
+            <div class="icon">🔥</div>
+            <h4>Đang chờ dữ liệu từ Firebase</h4>
+            <p>ESP32 sẽ tự động quét WiFi và gửi dữ liệu lên Firebase. Dữ liệu sẽ hiển thị realtime tại đây.</p>
         </div>
 
     </div>
+
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
     <script>
         // ==================== AUTH CHECK ====================
@@ -1013,38 +1022,42 @@
             document.getElementById('user-avatar').textContent = currentUser.charAt(0).toUpperCase();
         }
 
+        // ==================== FIREBASE CONFIG ====================
+        // ⚠️ THAY ĐỔI CẤU HÌNH FIREBASE CỦA BẠN TẠI ĐÂY
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",                                    // ← Thay
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",             // ← Thay
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",  // ← Thay
+            projectId: "YOUR_PROJECT_ID",                              // ← Thay
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",              // ← Thay
+            messagingSenderId: "000000000000",                         // ← Thay
+            appId: "1:000000000000:web:xxxxxxxxxx"                     // ← Thay
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const wifiRef = database.ref('wifi_scan');
+
         // ==================== GLOBAL STATE ====================
-        let esp32Ip = '';
-        let isConnected = false;
-        let autoRefreshInterval = null;
-        let isScanning = false;
+        let allNetworks = [];
+        let currentSort = { key: 'rssi', desc: true };
 
         // DOM elements
-        const ipInput = document.getElementById('esp32-ip');
-        const btnConnect = document.getElementById('btn-connect');
-        const btnScan = document.getElementById('btn-scan');
-        const statusBar = document.getElementById('status-bar');
         const toolbar = document.getElementById('toolbar');
         const tableContainer = document.getElementById('wifi-table-container');
         const emptyState = document.getElementById('empty-state');
         const wifiTbody = document.getElementById('wifi-tbody');
-        const toggleAutoRefresh = document.getElementById('toggle-auto-refresh');
-
-        // Load saved IP
-        const savedIp = localStorage.getItem('esp32_ip');
-        if (savedIp) ipInput.value = savedIp;
+        const statusBar = document.getElementById('status-bar');
 
         // ==================== TOAST SYSTEM ====================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-
             const icons = { success: '✅', error: '❌', info: 'ℹ️' };
             toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${message}`;
-
             container.appendChild(toast);
-
             setTimeout(() => {
                 toast.style.animation = 'slideOut 0.3s ease forwards';
                 setTimeout(() => toast.remove(), 300);
@@ -1093,7 +1106,6 @@
             else if (quality >= 40) activeBars = 3;
             else if (quality >= 20) activeBars = 2;
             else activeBars = 1;
-
             let bars = '';
             for (let i = 1; i <= 5; i++) {
                 bars += `<div class="bar ${i <= activeBars ? 'active' : ''}"></div>`;
@@ -1101,122 +1113,65 @@
             return `<div class="signal-bars ${signalClass}">${bars}</div>`;
         }
 
-        // ==================== CONNECT TO ESP32 ====================
-        btnConnect.addEventListener('click', async () => {
-            const ip = ipInput.value.trim();
-            if (!ip) {
-                showToast('Vui lòng nhập địa chỉ IP của ESP32', 'error');
-                ipInput.focus();
-                return;
-            }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-            // Validate IP format
-            const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-            if (!ipRegex.test(ip)) {
-                showToast('Địa chỉ IP không hợp lệ', 'error');
-                return;
-            }
+        // ==================== FIREBASE REALTIME LISTENER ====================
+        function initFirebaseListener() {
+            const statusDot = document.getElementById('firebase-status-dot');
+            const statusText = document.getElementById('firebase-status-text');
 
-            esp32Ip = ip;
-            localStorage.setItem('esp32_ip', ip);
+            wifiRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                
+                if (!data || !data.networks) {
+                    statusDot.style.background = '#f59e0b';
+                    statusText.textContent = 'Chưa có dữ liệu từ ESP32';
+                    return;
+                }
 
-            btnConnect.disabled = true;
-            btnConnect.innerHTML = '<span class="loading-spinner"></span> Đang kết nối...';
-
-            try {
-                const response = await fetch(`http://${esp32Ip}/api/status`, {
-                    signal: AbortSignal.timeout(5000)
-                });
-                const data = await response.json();
-
-                isConnected = true;
+                // Update Firebase status
+                statusDot.style.background = '#22c55e';
+                statusText.textContent = `✅ Đã kết nối — ESP32: ${data.ip || 'N/A'} | WiFi: ${data.connectedSSID || 'N/A'}`;
 
                 // Update status bar
                 document.getElementById('stat-status').innerHTML = 
                     `<span class="status-dot online"></span> Online`;
-                document.getElementById('stat-ip').textContent = data.ip || esp32Ip;
-                document.getElementById('stat-uptime').textContent = formatUptime(data.uptime || 0);
-
-                statusBar.style.display = 'grid';
-                toolbar.style.display = 'flex';
-                emptyState.style.display = 'none';
-
-                showToast(`Đã kết nối ESP32 tại ${esp32Ip}`, 'success');
-
-                // Auto scan
-                scanWiFi();
-
-            } catch (error) {
-                isConnected = false;
-                showToast(`Không thể kết nối ESP32 tại ${esp32Ip}. Kiểm tra IP và đảm bảo cùng mạng LAN.`, 'error');
-                
-                document.getElementById('stat-status').innerHTML = 
-                    `<span class="status-dot offline"></span> Không kết nối`;
-                statusBar.style.display = 'grid';
-            }
-
-            btnConnect.disabled = false;
-            btnConnect.innerHTML = isConnected ? '✅ Đã kết nối' : 'Kết nối';
-        });
-
-        // ==================== SCAN WiFi ====================
-        async function scanWiFi() {
-            if (!esp32Ip || isScanning) return;
-
-            isScanning = true;
-            btnScan.disabled = true;
-            btnScan.classList.add('scanning');
-            btnScan.innerHTML = '<span class="loading-spinner"></span> Đang quét...';
-
-            try {
-                const response = await fetch(`http://${esp32Ip}/api/scan`, {
-                    signal: AbortSignal.timeout(15000) // Scan takes time
-                });
-                const data = await response.json();
-
-                renderWiFiTable(data.networks || []);
-
-                // Update stats
+                document.getElementById('stat-ip').textContent = data.ip || '—';
+                document.getElementById('stat-uptime').textContent = formatUptime(data.uptimeSeconds || 0);
                 document.getElementById('stat-networks').textContent = data.totalNetworks || 0;
                 document.getElementById('network-count').textContent = data.totalNetworks || 0;
 
+                statusBar.style.display = 'grid';
+                toolbar.style.display = 'flex';
                 tableContainer.style.display = 'block';
+                emptyState.style.display = 'none';
 
-                showToast(`Tìm thấy ${data.totalNetworks} mạng WiFi`, 'success');
+                // Update last update time
+                const now = new Date();
+                document.getElementById('last-update-time').textContent = 
+                    `Cập nhật: ${now.toLocaleTimeString('vi-VN')}`;
 
-                // Update status
-                try {
-                    const statusRes = await fetch(`http://${esp32Ip}/api/status`, {
-                        signal: AbortSignal.timeout(5000)
-                    });
-                    const statusData = await statusRes.json();
-                    document.getElementById('stat-uptime').textContent = formatUptime(statusData.uptime || 0);
-                    document.getElementById('stat-status').innerHTML = 
-                        `<span class="status-dot online"></span> Online`;
-                } catch (e) {}
+                // Render data
+                const networks = data.networks || [];
+                renderWiFiTable(networks);
 
-            } catch (error) {
-                showToast('Lỗi khi quét WiFi. Kiểm tra kết nối ESP32.', 'error');
-                document.getElementById('stat-status').innerHTML = 
-                    `<span class="status-dot offline"></span> Mất kết nối`;
-            }
+                showToast(`Dữ liệu mới: ${data.totalNetworks} mạng WiFi`, 'success');
 
-            isScanning = false;
-            btnScan.disabled = false;
-            btnScan.classList.remove('scanning');
-            btnScan.innerHTML = '<span>🔄</span> Quét WiFi';
+            }, (error) => {
+                statusDot.style.background = '#ef4444';
+                statusText.textContent = `❌ Lỗi Firebase: ${error.message}`;
+                showToast('Lỗi kết nối Firebase!', 'error');
+            });
         }
 
-        btnScan.addEventListener('click', scanWiFi);
-
         // ==================== RENDER TABLE ====================
-        let allNetworks = []; // Store for filtering
-        let currentSort = { key: 'rssi', desc: true };
-
         function renderWiFiTable(networks, isFiltered = false) {
             if (!isFiltered) allNetworks = [...networks];
             
-            // Sort
             networks.sort((a, b) => {
                 let va = a[currentSort.key], vb = b[currentSort.key];
                 if (typeof va === 'string') va = va.toLowerCase();
@@ -1230,51 +1185,24 @@
             networks.forEach((net, index) => {
                 const tr = document.createElement('tr');
                 tr.style.animationDelay = `${index * 0.04}s`;
-
                 const ssidDisplay = net.ssid 
                     ? `<span class="ssid-name">${escapeHtml(net.ssid)}</span>` 
                     : `<span class="ssid-hidden">[Ẩn tên]</span>`;
-
                 const isSecure = net.encryption !== 'Open';
                 const wifiIcon = isSecure ? '🔒' : '🔓';
 
                 tr.innerHTML = `
                     <td style="color: rgba(255,255,255,0.4); font-weight: 600;">${index + 1}</td>
-                    <td>
-                        <div class="ssid-cell">
-                            <span class="wifi-icon">${wifiIcon}</span>
-                            ${ssidDisplay}
-                        </div>
-                    </td>
-                    <td>
-                        <div class="signal-badge">
-                            ${createSignalBars(net.signalQuality)}
-                            <span style="color: ${getRssiColor(net.rssi)}; font-size: 0.78rem;">
-                                ${getSignalLabel(net.signalQuality)}
-                            </span>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="rssi-value" style="color: ${getRssiColor(net.rssi)}">
-                            ${net.rssi} dBm
-                        </span>
-                    </td>
-                    <td>
-                        <span class="channel-badge">${net.channel}</span>
-                    </td>
-                    <td>
-                        <span class="encryption-badge ${isSecure ? 'secure' : 'open'}">
-                            ${net.encryption}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="speed-value">⚡ ${net.estimatedSpeed}</span>
-                    </td>
+                    <td><div class="ssid-cell"><span class="wifi-icon">${wifiIcon}</span>${ssidDisplay}</div></td>
+                    <td><div class="signal-badge">${createSignalBars(net.signalQuality)}<span style="color: ${getRssiColor(net.rssi)}; font-size: 0.78rem;">${getSignalLabel(net.signalQuality)}</span></div></td>
+                    <td><span class="rssi-value" style="color: ${getRssiColor(net.rssi)}">${net.rssi} dBm</span></td>
+                    <td><span class="channel-badge">${net.channel}</span></td>
+                    <td><span class="encryption-badge ${isSecure ? 'secure' : 'open'}">${net.encryption}</span></td>
+                    <td><span class="speed-value">⚡ ${net.estimatedSpeed}</span></td>
                 `;
                 wifiTbody.appendChild(tr);
             });
 
-            // Update chart & stats if not just a filter
             if (!isFiltered) {
                 renderChart(networks);
                 updateStats(networks);
@@ -1286,10 +1214,7 @@
         // ==================== SEARCH / FILTER ====================
         document.getElementById('search-wifi').addEventListener('input', (e) => {
             const q = e.target.value.toLowerCase();
-            if (!q) {
-                renderWiFiTable(allNetworks, true);
-                return;
-            }
+            if (!q) { renderWiFiTable(allNetworks, true); return; }
             const filtered = allNetworks.filter(n => 
                 (n.ssid && n.ssid.toLowerCase().includes(q)) ||
                 n.encryption.toLowerCase().includes(q) ||
@@ -1307,7 +1232,6 @@
                 } else {
                     currentSort = { key, desc: key === 'rssi' };
                 }
-                // Update icons
                 document.querySelectorAll('.sortable').forEach(el => {
                     el.classList.remove('active');
                     el.querySelector('.sort-icon').textContent = '⇅';
@@ -1323,7 +1247,6 @@
             const chart = document.getElementById('signal-chart');
             chart.innerHTML = '';
             const top10 = [...networks].sort((a,b) => b.rssi - a.rssi).slice(0, 10);
-            
             top10.forEach((net, i) => {
                 const pct = net.signalQuality;
                 const color = getRssiColor(net.rssi);
@@ -1338,7 +1261,6 @@
                     </div>
                 `;
                 chart.appendChild(row);
-                // Animate
                 requestAnimationFrame(() => {
                     setTimeout(() => {
                         row.querySelector('.chart-bar-fill').style.width = Math.max(pct, 5) + '%';
@@ -1355,7 +1277,6 @@
             const weakest = sorted[sorted.length - 1];
             const avgRssi = Math.round(networks.reduce((s,n) => s + n.rssi, 0) / networks.length);
             const securePct = Math.round(networks.filter(n => n.encryption !== 'Open').length / networks.length * 100);
-
             animateValue('stat-strongest', strongest.rssi + ' dBm');
             animateValue('stat-weakest', weakest.rssi + ' dBm');
             animateValue('stat-avg-rssi', avgRssi + ' dBm');
@@ -1376,14 +1297,10 @@
 
         // ==================== EXPORT CSV ====================
         document.getElementById('btn-export').addEventListener('click', () => {
-            if (!allNetworks.length) {
-                showToast('Chưa có dữ liệu để xuất', 'error');
-                return;
-            }
+            if (!allNetworks.length) { showToast('Chưa có dữ liệu để xuất', 'error'); return; }
             const headers = ['SSID', 'RSSI (dBm)', 'Channel', 'Encryption', 'Signal Quality (%)', 'Estimated Speed'];
             const rows = allNetworks.map(n => [
-                '"' + (n.ssid || '[Hidden]') + '"',
-                n.rssi, n.channel, n.encryption, n.signalQuality, '"' + n.estimatedSpeed + '"'
+                '"' + (n.ssid || '[Hidden]') + '"', n.rssi, n.channel, n.encryption, n.signalQuality, '"' + n.estimatedSpeed + '"'
             ]);
             const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -1407,40 +1324,28 @@
         updateClock();
         setInterval(updateClock, 1000);
 
-        // ==================== AUTO REFRESH ====================
-        toggleAutoRefresh.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                autoRefreshInterval = setInterval(scanWiFi, 10000);
-                showToast('Tự động quét mỗi 10 giây', 'info');
-            } else {
-                clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
-                showToast('Đã tắt tự động quét', 'info');
-            }
+        // ==================== REFRESH BUTTON ====================
+        document.getElementById('btn-refresh-firebase').addEventListener('click', () => {
+            wifiRef.once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data && data.networks) {
+                    renderWiFiTable(data.networks);
+                    showToast('Đã tải lại dữ liệu', 'success');
+                }
+            });
         });
 
         // ==================== LOGOUT ====================
         document.getElementById('btn-logout').addEventListener('click', () => {
-            clearInterval(autoRefreshInterval);
+            wifiRef.off();  // Ngắt listener Firebase
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
         });
 
-        // ==================== HELPER: ESCAPE HTML ====================
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ==================== KEYBOARD SHORTCUTS ====================
-        ipInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') btnConnect.click();
-        });
-
-        // ==================== INIT LOG ====================
-        console.log('%c📡 ESP32 WiFi Scanner Dashboard - Pro Edition!', 
-            'color: #7b2ff7; font-size: 14px; font-weight: bold');
+        // ==================== INIT ====================
+        initFirebaseListener();
+        console.log('%c🔥 ESP32 WiFi Scanner + Firebase - Ready!', 
+            'color: #f59e0b; font-size: 14px; font-weight: bold');
     </script>
 </body>
 </html>

@@ -1,51 +1,55 @@
 /*
  * =====================================================
- *  ESP32 WiFi Scanner - Web Server API
+ *  ESP32 WiFi Scanner + Firebase Realtime Database
  *  Author: Lê Tiến Đạt
- *  Mô tả: Quét WiFi xung quanh và gửi dữ liệu qua HTTP API
+ *  Mô tả: Quét WiFi và gửi dữ liệu lên Firebase
  *         để hiển thị trên trang web dashboard
  * =====================================================
  * 
  * HƯỚNG DẪN:
- * 1. Thay đổi WIFI_SSID và WIFI_PASSWORD bên dưới
- * 2. Upload code lên ESP32 bằng Arduino IDE
- * 3. Mở Serial Monitor (115200 baud) để xem IP của ESP32
- * 4. Nhập IP đó vào trang dashboard.html
+ * 1. Thay WIFI_SSID, WIFI_PASSWORD (WiFi nhà bạn)
+ * 2. Thay FIREBASE_HOST (Database URL từ Firebase Console)
+ * 3. Thay FIREBASE_AUTH (Database Secret hoặc để trống nếu Test mode)
+ * 4. Upload code lên ESP32
+ * 5. Mở Serial Monitor (115200) để xem trạng thái
  */
 
 #include <WiFi.h>
-#include <WebServer.h>
-#include <ArduinoJson.h>  // Cần cài thư viện ArduinoJson (v6+)
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // ==================== CẤU HÌNH WiFi ====================
-// ⚠️ THAY ĐỔI THÔNG TIN WiFi CỦA BẠN TẠI ĐÂY
+// ⚠️ THAY ĐỔI THÔNG TIN WiFi CỦA BẠN
 const char* WIFI_SSID     = "226.1-226.2-226.3";
 const char* WIFI_PASSWORD = "0778844247zalo";
 
-// ==================== WEB SERVER ====================
-WebServer server(80);
-unsigned long startTime;
+// ==================== CẤU HÌNH FIREBASE ====================
+// ⚠️ THAY ĐỔI THÔNG TIN FIREBASE CỦA BẠN
+// Lấy từ Firebase Console → Project Settings → Realtime Database
+const char* FIREBASE_HOST = "YOUR_PROJECT_ID.firebaseio.com";  // ← Thay bằng Database URL (không có https://)
+const char* FIREBASE_AUTH = "";  // ← Để trống nếu dùng Test mode, hoặc điền Database Secret
+
+// ==================== CẤU HÌNH SCAN ====================
+const unsigned long SCAN_INTERVAL = 15000;  // Quét mỗi 15 giây
+unsigned long lastScanTime = 0;
 
 // ==================== HÀM ƯỚC TÍNH TỐC ĐỘ ====================
-// Ước tính tốc độ lý thuyết dựa trên RSSI (cường độ tín hiệu)
 String estimateSpeed(int rssi) {
-  if (rssi >= -30) return "300+ Mbps";       // Rất mạnh
-  else if (rssi >= -50) return "150-300 Mbps"; // Mạnh
-  else if (rssi >= -60) return "72-150 Mbps";  // Khá
-  else if (rssi >= -70) return "36-72 Mbps";   // Trung bình
-  else if (rssi >= -80) return "11-36 Mbps";   // Yếu
-  else if (rssi >= -90) return "1-11 Mbps";    // Rất yếu
-  else return "<1 Mbps";                        // Gần như mất kết nối
+  if (rssi >= -30) return "300+ Mbps";
+  else if (rssi >= -50) return "150-300 Mbps";
+  else if (rssi >= -60) return "72-150 Mbps";
+  else if (rssi >= -70) return "36-72 Mbps";
+  else if (rssi >= -80) return "11-36 Mbps";
+  else if (rssi >= -90) return "1-11 Mbps";
+  else return "<1 Mbps";
 }
 
-// Tính chất lượng tín hiệu (0-100%)
 int signalQuality(int rssi) {
   if (rssi >= -30) return 100;
   else if (rssi <= -100) return 0;
   else return 2 * (rssi + 100);
 }
 
-// Lấy tên loại mã hóa
 String getEncryptionType(wifi_auth_mode_t encType) {
   switch (encType) {
     case WIFI_AUTH_OPEN:            return "Open";
@@ -60,31 +64,59 @@ String getEncryptionType(wifi_auth_mode_t encType) {
   }
 }
 
-// ==================== CORS HEADERS ====================
-void sendCorsHeaders() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+// ==================== GỬI DATA LÊN FIREBASE ====================
+bool sendToFirebase(String jsonData) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+
+  HTTPClient http;
+  
+  // Tạo URL Firebase REST API
+  String url = "https://" + String(FIREBASE_HOST) + "/wifi_scan.json";
+  if (strlen(FIREBASE_AUTH) > 0) {
+    url += "?auth=" + String(FIREBASE_AUTH);
+  }
+
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+
+  Serial.println("📤 Đang gửi dữ liệu lên Firebase...");
+  
+  int httpCode = http.PUT(jsonData);  // PUT để ghi đè data
+  
+  if (httpCode == 200) {
+    Serial.println("✅ Gửi Firebase thành công!");
+    http.end();
+    return true;
+  } else {
+    Serial.printf("❌ Lỗi Firebase: HTTP %d\n", httpCode);
+    String response = http.getString();
+    Serial.println("Response: " + response);
+    http.end();
+    return false;
+  }
 }
 
-// ==================== API: QUÉT WiFi ====================
-void handleScan() {
-  sendCorsHeaders();
-
-  Serial.println("📡 Đang quét WiFi...");
+// ==================== QUÉT WiFi VÀ GỬI ====================
+void scanAndSend() {
+  Serial.println("\n📡 Đang quét WiFi...");
   int n = WiFi.scanNetworks();
   Serial.printf("✅ Tìm thấy %d mạng WiFi\n", n);
 
-  // Tạo JSON document
-  DynamicJsonDocument doc(4096);
+  // Tạo JSON
+  DynamicJsonDocument doc(8192);
   doc["device"] = "ESP32";
   doc["ip"] = WiFi.localIP().toString();
+  doc["mac"] = WiFi.macAddress();
+  doc["connectedSSID"] = WiFi.SSID();
+  doc["connectedRSSI"] = WiFi.RSSI();
   doc["totalNetworks"] = n;
   doc["timestamp"] = millis();
+  doc["uptimeSeconds"] = millis() / 1000;
+  doc["freeHeap"] = ESP.getFreeHeap();
 
   JsonArray networks = doc.createNestedArray("networks");
 
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n && i < 30; i++) {  // Max 30 networks
     JsonObject network = networks.createNestedObject();
     network["ssid"]           = WiFi.SSID(i);
     network["rssi"]           = WiFi.RSSI(i);
@@ -95,53 +127,18 @@ void handleScan() {
     network["bssid"]          = WiFi.BSSIDstr(i);
   }
 
-  // Xóa kết quả scan cũ
   WiFi.scanDelete();
 
-  // Chuyển JSON thành string và gửi
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
+  // Chuyển JSON thành string
+  String jsonString;
+  serializeJson(doc, jsonString);
 
-  Serial.println("📤 Đã gửi dữ liệu WiFi scan");
-}
+  Serial.printf("📊 JSON size: %d bytes\n", jsonString.length());
 
-// ==================== API: TRẠNG THÁI ESP32 ====================
-void handleStatus() {
-  sendCorsHeaders();
-
-  DynamicJsonDocument doc(512);
-  doc["device"]     = "ESP32";
-  doc["status"]     = "online";
-  doc["ip"]         = WiFi.localIP().toString();
-  doc["mac"]        = WiFi.macAddress();
-  doc["rssi"]       = WiFi.RSSI();  // Tín hiệu WiFi của chính ESP32
-  doc["uptime"]     = (millis() - startTime) / 1000;  // Giây
-  doc["freeHeap"]   = ESP.getFreeHeap();
-  doc["ssid"]       = WiFi.SSID();
-
-  String response;
-  serializeJson(doc, response);
-  server.send(200, "application/json", response);
-}
-
-// ==================== HANDLE OPTIONS (CORS Preflight) ====================
-void handleOptions() {
-  sendCorsHeaders();
-  server.send(204);
-}
-
-// ==================== TRANG CHỦ ESP32 ====================
-void handleRoot() {
-  sendCorsHeaders();
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
-  html += "<title>ESP32 WiFi Scanner</title></head><body>";
-  html += "<h1>ESP32 WiFi Scanner API</h1>";
-  html += "<p><strong>IP:</strong> " + WiFi.localIP().toString() + "</p>";
-  html += "<p><a href='/api/scan'>GET /api/scan</a> - Quét WiFi</p>";
-  html += "<p><a href='/api/status'>GET /api/status</a> - Trạng thái ESP32</p>";
-  html += "</body></html>";
-  server.send(200, "text/html", html);
+  // Gửi lên Firebase
+  if (sendToFirebase(jsonString)) {
+    Serial.println("🎉 Data đã được cập nhật trên Firebase!");
+  }
 }
 
 // ==================== SETUP ====================
@@ -149,9 +146,9 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  Serial.println("\n====================================");
-  Serial.println("  ESP32 WiFi Scanner - Starting...");
-  Serial.println("====================================\n");
+  Serial.println("\n==========================================");
+  Serial.println("  ESP32 WiFi Scanner + Firebase");
+  Serial.println("==========================================\n");
 
   // Kết nối WiFi
   WiFi.mode(WIFI_STA);
@@ -167,35 +164,31 @@ void setup() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ Kết nối WiFi thành công!");
-    Serial.printf("📍 IP Address: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("📍 IP: %s\n", WiFi.localIP().toString().c_str());
     Serial.printf("📶 RSSI: %d dBm\n", WiFi.RSSI());
   } else {
     Serial.println("\n❌ Không thể kết nối WiFi! Khởi động lại...");
     ESP.restart();
   }
 
-  startTime = millis();
+  Serial.printf("\n🔥 Firebase Host: %s\n", FIREBASE_HOST);
+  Serial.printf("⏱️  Scan interval: %lu ms\n", SCAN_INTERVAL);
+  Serial.println("==========================================\n");
 
-  // Cấu hình routes
-  server.on("/", handleRoot);
-  server.on("/api/scan", HTTP_GET, handleScan);
-  server.on("/api/scan", HTTP_OPTIONS, handleOptions);
-  server.on("/api/status", HTTP_GET, handleStatus);
-  server.on("/api/status", HTTP_OPTIONS, handleOptions);
-
-  server.begin();
-  Serial.println("\n🌐 Web Server đã khởi động!");
-  Serial.println("📡 Mở trình duyệt và truy cập:");
-  Serial.printf("   http://%s\n", WiFi.localIP().toString().c_str());
-  Serial.printf("   http://%s/api/scan\n", WiFi.localIP().toString().c_str());
-  Serial.println("====================================\n");
+  // Quét lần đầu ngay lập tức
+  scanAndSend();
+  lastScanTime = millis();
 }
 
 // ==================== LOOP ====================
 void loop() {
-  server.handleClient();
+  // Quét WiFi định kỳ
+  if (millis() - lastScanTime >= SCAN_INTERVAL) {
+    scanAndSend();
+    lastScanTime = millis();
+  }
 
-  // Kiểm tra kết nối WiFi, tự kết nối lại nếu mất
+  // Kiểm tra kết nối WiFi
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("⚠️ Mất kết nối WiFi! Đang kết nối lại...");
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -209,4 +202,6 @@ void loop() {
       Serial.printf("\n✅ Đã kết nối lại! IP: %s\n", WiFi.localIP().toString().c_str());
     }
   }
+
+  delay(100);
 }
