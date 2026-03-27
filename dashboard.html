@@ -1152,9 +1152,17 @@
                     return;
                 }
 
-                // Cập nhật timestamp lần cuối nhận data
-                lastReceivedTime = Date.now();
-                updateConnectionStatus(true, data);
+                // Lấy giờ chuẩn Firebase (nếu có), nếu chưa có thì tạm dùng giờ hiện tại
+                let actualTimestamp = data.timestamp || Date.now();
+                lastReceivedTime = actualTimestamp;
+                
+                // Kiểm tra ngay lập tức xem dữ liệu này đã cũ quá 30 giây chưa
+                if (Date.now() - actualTimestamp > 30000) {
+                    // Nếu thời gian chênh lệch > 30s thì dù web vừa quét xong cũng báo Offline
+                    updateConnectionStatus(false);
+                } else {
+                    updateConnectionStatus(true, data);
+                }
 
                 // Update status bar
                 document.getElementById('stat-ip').textContent = data.ip || '—';

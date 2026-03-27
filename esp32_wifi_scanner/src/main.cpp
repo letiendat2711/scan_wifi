@@ -110,7 +110,11 @@ void scanAndSend() {
   doc["connectedSSID"] = WiFi.SSID();
   doc["connectedRSSI"] = WiFi.RSSI();
   doc["totalNetworks"] = n;
-  doc["timestamp"] = millis();
+  
+  // Lấy thời gian chuẩn (Server Timestamp) tự động từ máy chủ Firebase
+  JsonObject ts = doc.createNestedObject("timestamp");
+  ts[".sv"] = "timestamp";
+
   doc["uptimeSeconds"] = millis() / 1000;
   doc["freeHeap"] = ESP.getFreeHeap();
 
