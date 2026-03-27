@@ -3,289 +3,875 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Trang web demo của Lê Tiến Đạt - Hệ thống đăng nhập/đăng ký đẹp mắt, responsive và hoàn chỉnh">
-    <title>Trang Web Của Đạt - Đăng Nhập &amp; Đăng Ký</title>
+    <meta name="description" content="Trang web demo của Lê Tiến Đạt - Hệ thống đăng nhập/đăng ký & ESP32 WiFi Scanner">
+    <title>Trang Web Của Đạt - Đăng Nhập & Đăng Ký</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* ==================== CSS GỐC + CẢI THIỆN ==================== */
-        .title1 {
-            color: red;
-            margin-top: 20px;
-            font-size: 2.2rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .title2 {
-            color: green;
-            font-size: 1.8rem;
-        }
-
-        h2 {
-            color: blueviolet;
-            font-style: italic;
-        }
-
-        body {
-            background: linear-gradient(135deg, #00ffff, #00bfff); /* Cải thiện từ màu aqua đơn giản */
-            text-align: center;
-            font-family: 'Segoe UI', Arial, sans-serif;
+        /* ==================== RESET ==================== */
+        *, *::before, *::after {
             margin: 0;
             padding: 0;
-            min-height: 100vh;
-            color: #333;
-        }
-        
-        img {
-            width: 160px;
-            margin: 20px 0;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.3s;
-        }
-        img:hover {
-            transform: scale(1.05);
+            box-sizing: border-box;
         }
 
-        /* Vùng chứa form & welcome */
+        /* ==================== ANIMATED BACKGROUND ==================== */
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #050510;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Animated mesh gradient background */
+        .bg-gradient {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(120, 40, 200, 0.18) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0, 180, 255, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(255, 50, 120, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, #050510 0%, #0a0a2e 50%, #050510 100%);
+            animation: bgShift 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(30deg); }
+        }
+
+        /* ==================== FLOATING PARTICLES ==================== */
+        .particles-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            perspective: 600px;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: particleFloat linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 0;
+                transform: translateY(100vh) translateZ(0) scale(0);
+            }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% {
+                opacity: 0;
+                transform: translateY(-10vh) translateZ(100px) scale(1);
+            }
+        }
+
+        /* ==================== 3D GRID FLOOR ==================== */
+        .grid-floor {
+            position: fixed;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%) perspective(500px) rotateX(65deg);
+            width: 200%;
+            height: 60vh;
+            z-index: 0;
+            background-image: 
+                linear-gradient(rgba(123, 47, 247, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(123, 47, 247, 0.07) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridScroll 4s linear infinite;
+            mask-image: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 70%);
+            -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 70%);
+        }
+
+        @keyframes gridScroll {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 60px; }
+        }
+
+        /* ==================== CONTENT WRAPPER ==================== */
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* ==================== HERO SECTION ==================== */
+        .hero-section {
+            padding: 44px 20px 10px;
+            text-align: center;
+            perspective: 1000px;
+        }
+
+        .title-main {
+            font-size: 2.2rem;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            position: relative;
+            animation: titleReveal 1s ease-out;
+        }
+
+        .title-main .line1 {
+            display: block;
+            background: linear-gradient(90deg, #00d2ff, #a855f7, #f472b6, #00d2ff);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientFlow 4s ease infinite;
+        }
+
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes titleReveal {
+            from { opacity: 0; transform: translateY(-30px) rotateX(20deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+            font-weight: 400;
+            margin-bottom: 8px;
+            animation: fadeIn 1s ease 0.2s both;
+        }
+
+        .tech-badges {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            animation: fadeIn 1s ease 0.4s both;
+        }
+
+        .tech-badge {
+            padding: 4px 14px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            color: rgba(255, 255, 255, 0.5);
+            transition: all 0.3s;
+        }
+        .tech-badge:hover {
+            border-color: #7b2ff7;
+            color: #c4b5fd;
+            background: rgba(123, 47, 247, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(123, 47, 247, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== LOGO 3D ==================== */
+        .logo-container {
+            perspective: 800px;
+            margin: 10px 0 20px;
+            animation: fadeIn 1s ease 0.5s both;
+        }
+
+        .logo-3d {
+            width: 110px;
+            height: 110px;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: logoSpin 8s ease-in-out infinite;
+        }
+
+        .logo-3d img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 20px;
+            border: 2px solid rgba(123, 47, 247, 0.3);
+            box-shadow: 
+                0 0 20px rgba(123, 47, 247, 0.2),
+                0 0 60px rgba(123, 47, 247, 0.1),
+                0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo-ring {
+            position: absolute;
+            top: -8px; left: -8px;
+            right: -8px; bottom: -8px;
+            border: 2px solid rgba(123, 47, 247, 0.15);
+            border-radius: 24px;
+            transform-style: preserve-3d;
+            animation: ringRotate 6s linear infinite;
+        }
+
+        .logo-ring::after {
+            content: '';
+            position: absolute;
+            top: -2px; left: 20%;
+            width: 12px; height: 12px;
+            background: #7b2ff7;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #7b2ff7, 0 0 20px #7b2ff7;
+        }
+
+        @keyframes logoSpin {
+            0%, 100% { transform: rotateY(0deg) rotateX(0deg); }
+            25% { transform: rotateY(8deg) rotateX(4deg); }
+            50% { transform: rotateY(0deg) rotateX(0deg); }
+            75% { transform: rotateY(-8deg) rotateX(-4deg); }
+        }
+
+        @keyframes ringRotate {
+            from { transform: rotateZ(0deg); }
+            to { transform: rotateZ(360deg); }
+        }
+
+        /* ==================== 3D FORM CARD ==================== */
         .account-section {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 30px 15px;
-            min-height: 420px;
+            padding: 10px 15px 40px;
+            width: 100%;
+            perspective: 1200px;
         }
 
-        /* Khung chính - Responsive hoàn chỉnh */
         .form-box {
-            background-color: white;
-            padding: 35px 30px;
-            border-radius: 16px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            background: rgba(15, 15, 35, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 38px 34px;
+            border-radius: 24px;
             width: 92%;
-            max-width: 420px;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
+            max-width: 440px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease, box-shadow 0.3s ease;
+            box-shadow:
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            animation: cardEntrance 0.8s ease 0.6s both;
+            position: relative;
+            overflow: hidden;
         }
 
+        /* Shimmer effect on card */
+        .form-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                transparent 40%,
+                rgba(123, 47, 247, 0.03) 50%,
+                transparent 60%
+            );
+            animation: shimmer 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-30%) translateY(-30%) rotate(25deg); }
+            50% { transform: translateX(30%) translateY(30%) rotate(25deg); }
+        }
+
+        @keyframes cardEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(60px) rotateX(15deg) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        /* Glow border on hover */
+        .form-box::after {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            right: -1px; bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #7b2ff7, #00d2ff, #f472b6, #7b2ff7);
+            background-size: 400% 400%;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s;
+            animation: borderGlow 5s ease infinite;
+        }
+        .form-box:hover::after {
+            opacity: 1;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* ==================== FORM HEADERS ==================== */
         .form-box h3 {
-            margin: 0 0 20px 0;
-            color: #222;
-            font-size: 1.5rem;
+            margin: 0 0 28px 0;
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transform: translateZ(30px);
         }
 
-        /* Form group */
+        .form-box h3 .icon-3d {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #7b2ff7, #00d2ff);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 8px 20px rgba(123, 47, 247, 0.3);
+            animation: iconPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.05) rotate(3deg); }
+        }
+
+        /* ==================== FORM INPUTS ==================== */
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             text-align: left;
             position: relative;
+            transform: translateZ(20px);
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             font-weight: 600;
-            color: #444;
-            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 0.82rem;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
         }
 
-        /* Input wrapper cho toggle mật khẩu */
         .input-wrapper {
             position: relative;
         }
 
         .form-group input {
             width: 100%;
-            padding: 13px 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-            transition: border-color 0.2s;
+            padding: 15px 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
         }
         .form-group input:focus {
-            border-color: #007bff;
             outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+            border-color: #7b2ff7;
+            background: rgba(123, 47, 247, 0.06);
+            box-shadow: 
+                0 0 0 4px rgba(123, 47, 247, 0.15),
+                0 0 20px rgba(123, 47, 247, 0.1);
+            transform: translateY(-1px);
         }
 
-        /* Nút toggle mật khẩu */
+        /* ==================== PASSWORD TOGGLE ==================== */
         .password-toggle {
             position: absolute;
             right: 15px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
-            color: #666;
+            color: rgba(255, 255, 255, 0.3);
             user-select: none;
-            transition: color 0.2s;
+            transition: all 0.3s;
+            padding: 4px;
         }
         .password-toggle:hover {
-            color: #007bff;
+            color: #a855f7;
+            transform: translateY(-50%) scale(1.2);
+            text-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
         }
 
-        /* Nút */
+        /* ==================== 3D BUTTONS ==================== */
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 15px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 14px;
+            font-size: 15px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 8px;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateZ(25px);
+        }
+
+        /* Button shine effect */
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(
+                90deg, transparent, rgba(255,255,255,0.15), transparent
+            );
+            transition: left 0.5s;
+        }
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn-login {
-            background-color: #28a745;
+            background: linear-gradient(135deg, #22c55e, #059669);
             color: white;
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3), 0 2px 0 #16a34a;
         }
         .btn-login:hover {
-            background-color: #218838;
-            transform: translateY(-1px);
+            transform: translateZ(25px) translateY(-3px);
+            box-shadow: 0 14px 35px rgba(34, 197, 94, 0.45), 0 2px 0 #16a34a;
+        }
+        .btn-login:active {
+            transform: translateZ(25px) translateY(0px);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3), 0 1px 0 #16a34a;
         }
 
         .btn-register {
-            background-color: #007bff;
+            background: linear-gradient(135deg, #7b2ff7, #3b82f6);
             color: white;
+            box-shadow: 0 8px 25px rgba(123, 47, 247, 0.3), 0 2px 0 #6d28d9;
         }
         .btn-register:hover {
-            background-color: #0069d9;
-            transform: translateY(-1px);
+            transform: translateZ(25px) translateY(-3px);
+            box-shadow: 0 14px 35px rgba(123, 47, 247, 0.45), 0 2px 0 #6d28d9;
+        }
+        .btn-register:active {
+            transform: translateZ(25px) translateY(0px);
+            box-shadow: 0 4px 15px rgba(123, 47, 247, 0.3), 0 1px 0 #6d28d9;
         }
 
         .btn-logout {
-            background-color: #dc3545;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
             margin-top: 20px;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3), 0 2px 0 #b91c1c;
         }
         .btn-logout:hover {
-            background-color: #c82333;
-            transform: translateY(-1px);
+            transform: translateZ(25px) translateY(-3px);
+            box-shadow: 0 14px 35px rgba(239, 68, 68, 0.45), 0 2px 0 #b91c1c;
         }
 
-        /* Link chuyển form */
+        /* ==================== TOGGLE LINK ==================== */
         .toggle-link {
-            margin-top: 18px;
-            font-size: 14.5px;
-            color: #555;
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.35);
+            transform: translateZ(15px);
         }
 
         .toggle-link a {
-            color: #007bff;
+            color: #a78bfa;
             text-decoration: none;
             font-weight: 600;
+            position: relative;
+            transition: color 0.3s;
+        }
+        .toggle-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+            transition: width 0.3s;
+            border-radius: 2px;
         }
         .toggle-link a:hover {
-            text-decoration: underline;
+            color: #c4b5fd;
+        }
+        .toggle-link a:hover::after {
+            width: 100%;
         }
 
-        /* Thông báo */
+        /* ==================== MESSAGE BOX ==================== */
         #message {
-            margin: 12px 0 20px 0;
+            margin: 0 0 22px 0;
             font-weight: 600;
-            padding: 12px 16px;
-            border-radius: 8px;
+            padding: 13px 18px;
+            border-radius: 12px;
             display: none;
-            animation: fadeIn 0.3s;
+            font-size: 0.88rem;
+            text-align: left;
+            transform: translateZ(20px);
+            animation: msgSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes msgSlide {
+            from { opacity: 0; transform: translateZ(20px) translateY(-10px) scale(0.95); }
+            to { opacity: 1; transform: translateZ(20px) translateY(0) scale(1); }
         }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.1);
+        }
+        .success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
+        }
 
-        /* Welcome panel */
+        /* ==================== WELCOME PANEL ==================== */
         #welcome-panel {
             text-align: center;
+            transform: translateZ(20px);
         }
         #welcome-panel h3 {
-            color: #28a745;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-size: 1.5rem;
         }
         #welcome-panel p {
-            color: #555;
+            color: rgba(255, 255, 255, 0.5);
             margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        /* ==================== FLOATING ORBS ==================== */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .orb-1 {
+            width: 350px; height: 350px;
+            background: rgba(123, 47, 247, 0.15);
+            top: -100px; right: -100px;
+            animation: orbFloat1 10s ease-in-out infinite;
+        }
+        .orb-2 {
+            width: 250px; height: 250px;
+            background: rgba(0, 210, 255, 0.1);
+            bottom: -50px; left: -80px;
+            animation: orbFloat2 12s ease-in-out infinite;
+        }
+        .orb-3 {
+            width: 200px; height: 200px;
+            background: rgba(244, 114, 182, 0.08);
+            top: 40%; left: 60%;
+            animation: orbFloat3 14s ease-in-out infinite;
+        }
+
+        @keyframes orbFloat1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-40px, 30px) scale(1.1); }
+            66% { transform: translate(20px, -20px) scale(0.9); }
+        }
+        @keyframes orbFloat2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, -40px) scale(1.15); }
+        }
+        @keyframes orbFloat3 {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(-30px, 30px); }
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer-note {
+            margin-top: auto;
+            padding: 24px;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.15);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 480px) {
+            .title-main { font-size: 1.5rem; }
+            .form-box { padding: 28px 22px; border-radius: 18px; }
+            .hero-section { padding: 28px 16px 8px; }
+            .logo-3d { width: 80px; height: 80px; }
+            .tech-badges { gap: 5px; }
+            .tech-badge { font-size: 0.6rem; padding: 3px 10px; }
+        }
+
+        /* ==================== PASSWORD STRENGTH ==================== */
+        .strength-meter {
+            margin-top: 8px;
+        }
+        .strength-bars {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .strength-bars .s-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .strength-text {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: color 0.3s;
+        }
+        .strength-0 .s-bar { background: rgba(255,255,255,0.08); }
+        .strength-1 .s-bar:nth-child(-n+1) { background: #ef4444; }
+        .strength-2 .s-bar:nth-child(-n+2) { background: #f97316; }
+        .strength-3 .s-bar:nth-child(-n+3) { background: #f59e0b; }
+        .strength-4 .s-bar:nth-child(-n+4) { background: #22c55e; }
+
+        /* ==================== REMEMBER ME ==================== */
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0 4px;
+            transform: translateZ(15px);
+        }
+        .remember-row input[type='checkbox'] {
+            width: 16px; height: 16px;
+            accent-color: #7b2ff7;
+            cursor: pointer;
+        }
+        .remember-row label {
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.45);
+            cursor: pointer;
+            font-weight: 500;
         }
     </style>
 </head>
 
 <body>
-    <h1 class="title1">XIN CHÀO MỌI NGƯỜI ĐẾN VỚI TRANG WEB CỦA MÌNH</h1>
-    <h2><em>Author: Lê Tiến Đạt</em></h2>
-    <h1 class="title2">Giới thiệu HTML • CSS • JavaScript</h1>
-    <img src="UTC2.png" alt="Logo UTC2">
+    <!-- Background layers -->
+    <div class="bg-gradient"></div>
+    <div class="grid-floor"></div>
+    <div class="particles-container" id="particles"></div>
 
-    <div class="account-section">
-        <div class="form-box">
-            
-            <!-- Thông báo chung -->
-            <div id="message"></div>
+    <!-- Floating orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-            <!-- Form Đăng Nhập -->
-            <div id="login-form">
-                <h3>Đăng Nhập</h3>
-                <div class="form-group">
-                    <label for="login-user">Tên tài khoản:</label>
-                    <input type="text" id="login-user" placeholder="Nhập username" autocomplete="username">
+    <!-- Main content -->
+    <div class="content-wrapper">
+
+        <!-- Hero -->
+        <div class="hero-section">
+            <h1 class="title-main">
+                <span class="line1">XIN CHÀO MỌI NGƯỜI ĐẾN VỚI TRANG WEB CỦA MÌNH</span>
+            </h1>
+            <p class="subtitle"><em>Author: Lê Tiến Đạt</em></p>
+            <div class="tech-badges">
+                <span class="tech-badge">HTML5</span>
+                <span class="tech-badge">CSS3</span>
+                <span class="tech-badge">JavaScript</span>
+                <span class="tech-badge">ESP32</span>
+                <span class="tech-badge">IoT</span>
+            </div>
+
+            <!-- 3D Logo -->
+            <div class="logo-container">
+                <div class="logo-3d" id="logo-3d">
+                    <div class="logo-ring"></div>
+                    <img src="UTC2.png" alt="Logo UTC2">
                 </div>
-                <div class="form-group">
-                    <label for="login-pass">Mật khẩu:</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="login-pass" placeholder="Nhập password" autocomplete="current-password">
-                        <span class="password-toggle" id="toggle-login-pass">👁️</span>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="account-section">
+            <div class="form-box" id="form-box">
+
+                <!-- Thông báo -->
+                <div id="message"></div>
+
+                <!-- Form Đăng Nhập -->
+                <div id="login-form">
+                    <h3><span class="icon-3d">🔐</span> Đăng Nhập</h3>
+                    <div class="form-group">
+                        <label for="login-user">Tên tài khoản</label>
+                        <input type="text" id="login-user" placeholder="Nhập username" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-pass">Mật khẩu</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="login-pass" placeholder="Nhập password" autocomplete="current-password">
+                            <span class="password-toggle" id="toggle-login-pass">👁️</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-login" id="btn-do-login">Đăng Nhập</button>
+                    <div class="remember-row">
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">Ghi nhớ đăng nhập</label>
+                    </div>
+                    <div class="toggle-link">
+                        Chưa có tài khoản? 
+                        <a href="#" id="link-show-register">Đăng ký ngay</a>
                     </div>
                 </div>
-                <button class="btn btn-login" id="btn-do-login">Đăng Nhập</button>
-                <div class="toggle-link">
-                    Chưa có tài khoản? 
-                    <a href="#" id="link-show-register">Đăng ký ngay</a>
-                </div>
-            </div>
 
-            <!-- Form Đăng Ký -->
-            <div id="register-form" style="display: none;">
-                <h3>Đăng Ký Tài Khoản</h3>
-                <div class="form-group">
-                    <label for="reg-user">Tên tài khoản mới:</label>
-                    <input type="text" id="reg-user" placeholder="Tạo username (không dấu cách)" autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label for="reg-pass">Mật khẩu:</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="reg-pass" placeholder="Tạo password (ít nhất 4 ký tự)" autocomplete="new-password">
-                        <span class="password-toggle" id="toggle-reg-pass">👁️</span>
+                <!-- Form Đăng Ký -->
+                <div id="register-form" style="display: none;">
+                    <h3><span class="icon-3d">✨</span> Đăng Ký Tài Khoản</h3>
+                    <div class="form-group">
+                        <label for="reg-user">Tên tài khoản mới</label>
+                        <input type="text" id="reg-user" placeholder="Tạo username (không dấu cách)" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-pass">Mật khẩu</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="reg-pass" placeholder="Tạo password (ít nhất 4 ký tự)" autocomplete="new-password">
+                            <span class="password-toggle" id="toggle-reg-pass">👁️</span>
+                        </div>
+                        <div class="strength-meter" id="strength-meter">
+                            <div class="strength-bars strength-0">
+                                <div class="s-bar"></div>
+                                <div class="s-bar"></div>
+                                <div class="s-bar"></div>
+                                <div class="s-bar"></div>
+                            </div>
+                            <div class="strength-text" id="strength-text"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-register" id="btn-do-register">Tạo Tài Khoản</button>
+                    <div class="toggle-link">
+                        Đã có tài khoản? 
+                        <a href="#" id="link-show-login">Quay lại Đăng nhập</a>
                     </div>
                 </div>
-                <button class="btn btn-register" id="btn-do-register">Tạo Tài Khoản</button>
-                <div class="toggle-link">
-                    Đã có tài khoản? 
-                    <a href="#" id="link-show-login">Quay lại Đăng nhập</a>
-                </div>
-            </div>
 
-            <!-- Panel Chào mừng (hoàn chỉnh mới) -->
-            <div id="welcome-panel" style="display: none;">
-                <h3>🎉 Chào mừng bạn quay lại!</h3>
-                <p id="welcome-text">Bạn đã đăng nhập thành công.</p>
-                <button class="btn btn-logout" id="btn-logout">Đăng Xuất</button>
-                <div class="toggle-link" style="margin-top: 25px;">
-                    <a href="#" id="link-back-to-login">Quay lại trang chủ</a>
+                <!-- Panel Chào mừng -->
+                <div id="welcome-panel" style="display: none;">
+                    <h3>🎉 Chào mừng bạn quay lại!</h3>
+                    <p id="welcome-text">Bạn đã đăng nhập thành công.</p>
+                    <button class="btn btn-logout" id="btn-logout">Đăng Xuất</button>
+                    <div class="toggle-link" style="margin-top: 25px;">
+                        <a href="#" id="link-back-to-login">Quay lại trang chủ</a>
+                    </div>
                 </div>
-            </div>
 
+            </div>
+        </div>
+
+        <div class="footer-note">
+            © 2026 Lê Tiến Đạt — UTC2 • IoT & Web Development
         </div>
     </div>
 
     <script>
-        // ==================== CÁC BIẾN TOÀN CỤC ====================
+        // ==================== 3D TILT EFFECT ON FORM CARD ====================
+        const formBox = document.getElementById('form-box');
+
+        formBox.addEventListener('mousemove', (e) => {
+            const rect = formBox.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const rotateX = ((y - centerY) / centerY) * -6;
+            const rotateY = ((x - centerX) / centerX) * 6;
+
+            formBox.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+
+        formBox.addEventListener('mouseleave', () => {
+            formBox.style.transform = 'perspective(1200px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        });
+
+        // ==================== FLOATING PARTICLES ====================
+        function createParticles() {
+            const container = document.getElementById('particles');
+            const colors = ['#7b2ff7', '#00d2ff', '#f472b6', '#22c55e', '#a855f7'];
+
+            for (let i = 0; i < 35; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 4 + 2;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                particle.style.cssText = `
+                    width: ${size}px;
+                    height: ${size}px;
+                    background: ${color};
+                    box-shadow: 0 0 ${size * 3}px ${color};
+                    left: ${Math.random() * 100}%;
+                    animation-duration: ${Math.random() * 12 + 8}s;
+                    animation-delay: ${Math.random() * 10}s;
+                `;
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // ==================== PARALLAX ON MOUSE (HERO) ====================
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 2;
+            const y = (e.clientY / window.innerHeight - 0.5) * 2;
+
+            document.querySelectorAll('.orb').forEach((orb, i) => {
+                const speed = (i + 1) * 8;
+                orb.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+            });
+        });
+
+        // ==================== LOGIC GIỮ NGUYÊN ====================
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
         const welcomePanel = document.getElementById('welcome-panel');
         const messageBox = document.getElementById('message');
 
-        // Link & Button
         const linkShowRegister = document.getElementById('link-show-register');
         const linkShowLogin = document.getElementById('link-show-login');
         const linkBackToLogin = document.getElementById('link-back-to-login');
@@ -293,20 +879,15 @@
         const btnDoLogin = document.getElementById('btn-do-login');
         const btnLogout = document.getElementById('btn-logout');
 
-        // Toggle mật khẩu
         const toggleLoginPass = document.getElementById('toggle-login-pass');
         const toggleRegPass = document.getElementById('toggle-reg-pass');
 
         // ==================== HÀM THÔNG BÁO ====================
         function showMessage(text, type) {
             messageBox.textContent = text;
-            messageBox.className = type; // error hoặc success
+            messageBox.className = type;
             messageBox.style.display = 'block';
-
-            // Tự động ẩn sau 3 giây
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, 3000);
+            setTimeout(() => { messageBox.style.display = 'none'; }, 3000);
         }
 
         // ==================== HIỂN THỊ CÁC PANEL ====================
@@ -328,17 +909,15 @@
             loginForm.style.display = 'none';
             registerForm.style.display = 'none';
             welcomePanel.style.display = 'block';
-            
             document.getElementById('welcome-text').innerHTML = `
                 Xin chào <strong>${username}</strong>!<br>
-                Bạn đã đăng nhập thành công vào hệ thống demo.
+                Bạn đã đăng nhập thành công vào hệ thống.
             `;
             messageBox.style.display = 'none';
         }
 
         // ==================== TOGGLE MẬT KHẨU ====================
         function setupPasswordToggle() {
-            // Login password
             toggleLoginPass.addEventListener('click', () => {
                 const input = document.getElementById('login-pass');
                 if (input.type === 'password') {
@@ -349,8 +928,6 @@
                     toggleLoginPass.textContent = '👁️';
                 }
             });
-
-            // Register password
             toggleRegPass.addEventListener('click', () => {
                 const input = document.getElementById('reg-pass');
                 if (input.type === 'password') {
@@ -361,6 +938,33 @@
                     toggleRegPass.textContent = '👁️';
                 }
             });
+        }
+
+        // ==================== PASSWORD STRENGTH METER ====================
+        document.getElementById('reg-pass').addEventListener('input', (e) => {
+            const pass = e.target.value;
+            let score = 0;
+            if (pass.length >= 4) score++;
+            if (pass.length >= 8) score++;
+            if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score++;
+            if (/[0-9]/.test(pass) && /[^A-Za-z0-9]/.test(pass)) score++;
+
+            const labels = ['', '🔴 Yếu', '🟠 Trung bình', '🟡 Khá', '🟢 Mạnh'];
+            const colors = ['', '#ef4444', '#f97316', '#f59e0b', '#22c55e'];
+
+            const barsDiv = document.querySelector('.strength-bars');
+            barsDiv.className = `strength-bars strength-${pass.length ? score : 0}`;
+            
+            const textEl = document.getElementById('strength-text');
+            textEl.textContent = pass.length ? labels[score] : '';
+            textEl.style.color = colors[score] || '';
+        });
+
+        // ==================== REMEMBER ME ====================
+        const savedUser = localStorage.getItem('remembered_user');
+        if (savedUser) {
+            document.getElementById('login-user').value = savedUser;
+            document.getElementById('remember-me').checked = true;
         }
 
         // ==================== ĐĂNG KÝ ====================
@@ -376,31 +980,22 @@
                 showMessage("❌ Mật khẩu phải có ít nhất 4 ký tự.", "error");
                 return;
             }
-            // Username không được chứa khoảng trắng
             if (/\s/.test(user)) {
                 showMessage("❌ Username không được chứa khoảng trắng.", "error");
                 return;
             }
-
-            // Kiểm tra username đã tồn tại
             if (localStorage.getItem(user) !== null) {
                 showMessage("❌ Tên tài khoản này đã tồn tại.", "error");
                 return;
             }
 
-            // Lưu vào localStorage
             localStorage.setItem(user, pass);
-
             showMessage("✅ Chúc mừng! Tài khoản đã được tạo thành công.", "success");
 
-            // Xóa form
             document.getElementById('reg-user').value = '';
             document.getElementById('reg-pass').value = '';
 
-            // Chuyển về form đăng nhập sau 1.2 giây
-            setTimeout(() => {
-                linkShowLogin.click();
-            }, 1200);
+            setTimeout(() => { linkShowLogin.click(); }, 1200);
         });
 
         // ==================== ĐĂNG NHẬP ====================
@@ -419,29 +1014,22 @@
                 showMessage("❌ Tài khoản không tồn tại.", "error");
                 document.getElementById('login-user').focus();
             } else if (storedPassword === pass) {
-                // Đăng nhập thành công
                 showMessage(`✅ Đăng nhập thành công! Xin chào ${user}.`, "success");
-
-                // Lưu trạng thái đăng nhập
                 localStorage.setItem('currentUser', user);
 
-                // Chuyển sang panel chào mừng
-                setTimeout(() => {
-                    showWelcome(user);
-                }, 800);
+                // Remember me
+                if (document.getElementById('remember-me').checked) {
+                    localStorage.setItem('remembered_user', user);
+                } else {
+                    localStorage.removeItem('remembered_user');
+                }
 
-                // Xóa input
+                setTimeout(() => { showWelcome(user); }, 800);
+
                 document.getElementById('login-user').value = '';
                 document.getElementById('login-pass').value = '';
 
-                /* ==================== THÊM MỚI (KHÔNG THAY ĐỔI CẤU TRÚC) ====================
-                   Sau khi đăng nhập thành công → tự động next sang trang mới (dashboard.html)
-                   Bạn chỉ cần tạo thêm file dashboard.html (dùng code mình đưa lần trước) */
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1800);
-                // =====================================================================
-
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1800);
             } else {
                 showMessage("❌ Sai mật khẩu.", "error");
                 document.getElementById('login-pass').value = '';
@@ -452,47 +1040,28 @@
         // ==================== ĐĂNG XUẤT ====================
         btnLogout.addEventListener('click', () => {
             const currentUser = localStorage.getItem('currentUser');
-            
             localStorage.removeItem('currentUser');
             showMessage(`👋 Bạn đã đăng xuất thành công (${currentUser}).`, "success");
-            
-            setTimeout(() => {
-                showLogin();
-            }, 1000);
+            setTimeout(() => { showLogin(); }, 1000);
         });
 
         // ==================== CHUYỂN ĐỔI FORM ====================
-        linkShowRegister.addEventListener('click', (e) => {
-            e.preventDefault();
-            showRegister();
-        });
+        linkShowRegister.addEventListener('click', (e) => { e.preventDefault(); showRegister(); });
+        linkShowLogin.addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
+        linkBackToLogin.addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
 
-        linkShowLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            showLogin();
-        });
-
-        linkBackToLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            showLogin();
-        });
-
-        // ==================== KHỞI ĐỘNG TRANG (HOÀN CHỈNH) ====================
+        // ==================== KHỞI ĐỘNG ====================
         document.addEventListener('DOMContentLoaded', () => {
             setupPasswordToggle();
 
-            // Kiểm tra xem có đang đăng nhập không
             const currentUser = localStorage.getItem('currentUser');
-            
             if (currentUser) {
-                // Đã đăng nhập trước đó → hiện panel chào mừng
                 showWelcome(currentUser);
             } else {
-                // Mặc định hiển thị form đăng nhập
-                showLogin();
+                showRegister(); // Mặc định hiện form Đăng Ký trước
             }
 
-            console.log('%c✅ Trang web của Đạt đã được cải thiện và hoàn chỉnh!', 'color: #28a745; font-size: 16px; font-weight: bold');
+            console.log('%c✅ Trang web của Đạt — 3D Premium Edition!', 'color: #7b2ff7; font-size: 16px; font-weight: bold');
         });
     </script>
 </body>

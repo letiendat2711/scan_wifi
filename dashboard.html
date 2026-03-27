@@ -3,127 +3,1444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang Chủ - Lê Tiến Đạt</title>
+    <meta name="description" content="Dashboard ESP32 WiFi Scanner - Quét và hiển thị danh sách mạng WiFi từ ESP32">
+    <title>Dashboard - ESP32 WiFi Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            background: linear-gradient(135deg, #00ffff, #00bfff);
-            font-family: 'Segoe UI', Arial, sans-serif;
+        /* ==================== RESET & BASE ==================== */
+        * {
             margin: 0;
             padding: 0;
-            min-height: 100vh;
-            color: #333;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        /* ==================== HEADER ==================== */
         .header {
-            background: rgba(255,255,255,0.9);
-            padding: 15px 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        h1 { color: #28a745; text-align: center; }
-        .info-box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            text-align: center;
-            font-size: 1.1rem;
+
+        .header-brand .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #00d2ff, #7b2ff7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 15px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: left;
+
+        .header-brand h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d2ff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .btn-logout {
-            background-color: #dc3545;
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 7px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .user-badge .avatar {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #7b2ff7, #00d2ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
             color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
         }
-        .btn-logout:hover { background-color: #c82333; }
+
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+        }
+
+        /* ==================== MAIN CONTAINER ==================== */
+        .main-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px 40px;
+        }
+
+        /* ==================== CONNECTION PANEL ==================== */
+        .connect-panel {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+        }
+
+        .connect-panel h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connect-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .connect-row input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: 'Inter', monospace;
+            transition: all 0.2s;
+        }
+        .connect-row input::placeholder {
+            color: rgba(255, 255, 255, 0.35);
+        }
+        .connect-row input:focus {
+            outline: none;
+            border-color: #7b2ff7;
+            box-shadow: 0 0 0 3px rgba(123, 47, 247, 0.2);
+        }
+
+        .btn-connect {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #7b2ff7, #00d2ff);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(123, 47, 247, 0.35);
+        }
+        .btn-connect:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ==================== STATUS BAR ==================== */
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.3s;
+        }
+        .status-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateY(-2px);
+        }
+
+        .status-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .status-icon.green { background: rgba(34, 197, 94, 0.15); }
+        .status-icon.blue { background: rgba(59, 130, 246, 0.15); }
+        .status-icon.purple { background: rgba(168, 85, 247, 0.15); }
+        .status-icon.orange { background: rgba(249, 115, 22, 0.15); }
+
+        .status-info label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: 600;
+        }
+
+        .status-info .value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            margin-top: 2px;
+        }
+
+        /* ==================== TOOLBAR ==================== */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toolbar h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .network-count {
+            background: rgba(123, 47, 247, 0.2);
+            color: #c084fc;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 50px;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-scan {
+            padding: 10px 22px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(34, 197, 94, 0.3);
+        }
+        .btn-scan:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-scan.scanning {
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Toggle auto-refresh */
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 42px;
+            height: 22px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 50px;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* ==================== WiFi TABLE ==================== */
+        .wifi-table-container {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .wifi-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .wifi-table thead th {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            white-space: nowrap;
+        }
+
+        .wifi-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s;
+        }
+        .wifi-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .wifi-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .wifi-table td {
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            vertical-align: middle;
+        }
+
+        /* SSID column */
+        .ssid-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wifi-icon {
+            font-size: 18px;
+        }
+
+        .ssid-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .ssid-hidden {
+            color: rgba(255, 255, 255, 0.35);
+            font-style: italic;
+        }
+
+        /* Signal bars */
+        .signal-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 20px;
+        }
+
+        .signal-bars .bar {
+            width: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.12);
+            transition: all 0.3s;
+        }
+        .signal-bars .bar:nth-child(1) { height: 5px; }
+        .signal-bars .bar:nth-child(2) { height: 9px; }
+        .signal-bars .bar:nth-child(3) { height: 13px; }
+        .signal-bars .bar:nth-child(4) { height: 17px; }
+        .signal-bars .bar:nth-child(5) { height: 20px; }
+
+        .signal-bars.excellent .bar.active { background: #22c55e; }
+        .signal-bars.good .bar.active { background: #3b82f6; }
+        .signal-bars.fair .bar.active { background: #f59e0b; }
+        .signal-bars.weak .bar.active { background: #f97316; }
+        .signal-bars.very-weak .bar.active { background: #ef4444; }
+
+        /* Signal quality badge */
+        .signal-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        /* RSSI */
+        .rssi-value {
+            font-family: 'Inter', monospace;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Encryption badge */
+        .encryption-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .encryption-badge.secure {
+            background: rgba(34, 197, 94, 0.12);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        .encryption-badge.open {
+            background: rgba(239, 68, 68, 0.12);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Speed */
+        .speed-value {
+            font-weight: 600;
+            color: #7dd3fc;
+            font-size: 0.85rem;
+        }
+
+        /* Channel */
+        .channel-badge {
+            background: rgba(139, 92, 246, 0.12);
+            color: #c4b5fd;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        /* ==================== EMPTY & LOADING STATES ==================== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state .icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.88rem;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #7b2ff7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Row animation */
+        .wifi-table tbody tr {
+            animation: fadeInRow 0.3s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInRow {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ==================== CONNECTION STATUS DOT ==================== */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.online {
+            background: #22c55e;
+            box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+            animation: blink 2s infinite;
+        }
+        .status-dot.offline {
+            background: #ef4444;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ==================== TOAST NOTIFICATIONS ==================== */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: rgba(30, 30, 50, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+            min-width: 260px;
+        }
+
+        .toast.success { border-left: 3px solid #22c55e; }
+        .toast.error { border-left: 3px solid #ef4444; }
+        .toast.info { border-left: 3px solid #3b82f6; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(40px); }
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+            }
+            .header-brand h2 { font-size: 0.95rem; }
+
+            .main-container { padding: 16px 12px 30px; }
+
+            .connect-row {
+                flex-direction: column;
+            }
+            .connect-row input {
+                min-width: 100%;
+            }
+            .btn-connect { width: 100%; }
+
+            .status-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .wifi-table-container {
+                overflow-x: auto;
+            }
+            .wifi-table {
+                min-width: 680px;
+            }
+
+            .user-badge span:not(.avatar) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .status-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ==================== CLOCK BAR ==================== */
+        .clock-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 8px 0;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.5);
+            font-variant-numeric: tabular-nums;
+        }
+        .clock-bar #realtime-clock {
+            font-weight: 700;
+            color: #c4b5fd;
+            font-size: 1rem;
+        }
+        .clock-date { font-size: 0.78rem; }
+
+        /* ==================== STATS PANEL ==================== */
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 18px 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .stat-item:hover {
+            background: rgba(255,255,255,0.07);
+            transform: translateY(-3px);
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* ==================== CHART ==================== */
+        .chart-container {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+        .chart-header h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: rgba(255,255,255,0.7);
+        }
+        .chart-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chart-label {
+            width: 140px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.7);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+        }
+        .chart-bar-bg {
+            flex: 1;
+            height: 22px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .chart-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+        }
+        .chart-bar-fill::after {
+            content: attr(data-value);
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.68rem;
+            font-weight: 700;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* ==================== SEARCH BOX ==================== */
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            transition: all 0.2s;
+        }
+        .search-box:focus-within {
+            border-color: #7b2ff7;
+            box-shadow: 0 0 0 3px rgba(123,47,247,0.15);
+        }
+        .search-box span { font-size: 14px; }
+        .search-box input {
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 0.82rem;
+            font-family: inherit;
+            outline: none;
+            width: 120px;
+        }
+        .search-box input::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* ==================== EXPORT BUTTON ==================== */
+        .btn-export {
+            padding: 8px 16px;
+            background: rgba(59,130,246,0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(59,130,246,0.25);
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-export:hover {
+            background: rgba(59,130,246,0.3);
+            transform: translateY(-1px);
+        }
+
+        /* ==================== SORTABLE COLUMNS ==================== */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+        .sortable:hover {
+            color: #c4b5fd !important;
+        }
+        .sortable.active {
+            color: #a78bfa !important;
+        }
+        .sort-icon {
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+        .sortable.active .sort-icon {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .stats-panel { grid-template-columns: 1fr 1fr; }
+            .search-box input { width: 80px; }
+        }
+        @media (max-width: 480px) {
+            .stats-panel { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
+    <!-- HEADER -->
     <div class="header">
-        <h2 style="margin:0; color:#28a745;">Trang Web Của Đạt</h2>
-        <div>
-            <span id="user-display" style="font-weight:600; margin-right:15px;"></span>
+        <div class="header-brand">
+            <div class="logo-icon">📡</div>
+            <h2>ESP32 WiFi Scanner</h2>
+        </div>
+        <div class="header-right">
+            <div class="user-badge" id="user-badge">
+                <span class="avatar" id="user-avatar">U</span>
+                <span id="user-display">User</span>
+            </div>
             <button class="btn-logout" id="btn-logout">Đăng Xuất</button>
         </div>
     </div>
 
-    <div class="container">
-        <h1>🎉 Chào mừng bạn đã đăng nhập!</h1>
-        
-        <div class="info-box" id="welcome-box">
-            <!-- JS sẽ điền thông tin ở đây -->
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- MAIN -->
+    <div class="main-container">
+
+        <!-- REAL-TIME CLOCK -->
+        <div class="clock-bar" id="clock-bar">
+            <span>🕐</span>
+            <span id="realtime-clock">--:--:--</span>
+            <span class="clock-date" id="realtime-date">--</span>
         </div>
 
-        <div class="card">
-            <h3>📌 Thông tin tài khoản</h3>
-            <p><strong>Tên tài khoản:</strong> <span id="username-display"></span></p>
-            <p><strong>Thời gian đăng nhập:</strong> <span id="login-time"></span></p>
-            <p><strong>Trạng thái:</strong> <span style="color:#28a745;">Đã đăng nhập thành công ✅</span></p>
+        <!-- CONNECTION PANEL -->
+        <div class="connect-panel">
+            <h3>🔗 Kết nối ESP32</h3>
+            <div class="connect-row">
+                <input type="text" id="esp32-ip" placeholder="Nhập IP của ESP32 (ví dụ: 192.168.1.100)" 
+                       value="" autocomplete="off" spellcheck="false">
+                <button class="btn-connect" id="btn-connect">Kết nối</button>
+            </div>
         </div>
 
-        <div class="card">
-            <h3>🚀 Các chức năng demo</h3>
-            <ul>
-                <li>📊 Xem thống kê</li>
-                <li>🖼️ Quản lý ảnh</li>
-                <li>📝 Ghi chú cá nhân</li>
-                <li>🔧 Cài đặt tài khoản</li>
-            </ul>
+        <!-- STATUS BAR -->
+        <div class="status-bar" id="status-bar" style="display: none;">
+            <div class="status-card">
+                <div class="status-icon green">📶</div>
+                <div class="status-info">
+                    <label>Trạng thái</label>
+                    <div class="value" id="stat-status">
+                        <span class="status-dot offline"></span> Chưa kết nối
+                    </div>
+                </div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon blue">🌐</div>
+                <div class="status-info">
+                    <label>IP ESP32</label>
+                    <div class="value" id="stat-ip">—</div>
+                </div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon purple">⏱️</div>
+                <div class="status-info">
+                    <label>Uptime</label>
+                    <div class="value" id="stat-uptime">—</div>
+                </div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon orange">📊</div>
+                <div class="status-info">
+                    <label>Mạng tìm thấy</label>
+                    <div class="value" id="stat-networks">0</div>
+                </div>
+            </div>
         </div>
 
-        <div style="text-align:center; margin-top:30px;">
-            <button class="btn-logout" id="btn-logout-bottom" style="padding:14px 40px;">Đăng Xuất</button>
+        <!-- STATISTICS PANEL -->
+        <div class="stats-panel" id="stats-panel" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-value" style="color: #22c55e;" id="stat-strongest">—</div>
+                <div class="stat-label">Tín hiệu mạnh nhất</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #ef4444;" id="stat-weakest">—</div>
+                <div class="stat-label">Tín hiệu yếu nhất</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #3b82f6;" id="stat-avg-rssi">—</div>
+                <div class="stat-label">RSSI trung bình</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #f59e0b;" id="stat-secure-pct">—</div>
+                <div class="stat-label">Mạng có bảo mật</div>
+            </div>
         </div>
+
+        <!-- SIGNAL CHART -->
+        <div class="chart-container" id="chart-container" style="display: none;">
+            <div class="chart-header">
+                <h4>📊 Biểu đồ cường độ tín hiệu (Top 10)</h4>
+            </div>
+            <div class="chart-body" id="signal-chart"></div>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar" id="toolbar" style="display: none;">
+            <div class="toolbar-left">
+                <h3>📋 Danh sách WiFi <span class="network-count" id="network-count">0</span></h3>
+            </div>
+            <div class="toolbar-right">
+                <div class="search-box">
+                    <span>🔍</span>
+                    <input type="text" id="search-wifi" placeholder="Tìm WiFi..." autocomplete="off">
+                </div>
+                <button class="btn-export" id="btn-export" title="Xuất CSV">
+                    📥 CSV
+                </button>
+                <div class="auto-refresh">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-auto-refresh">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Auto (10s)</span>
+                </div>
+                <button class="btn-scan" id="btn-scan">
+                    <span>🔄</span> Quét WiFi
+                </button>
+            </div>
+        </div>
+
+        <!-- WiFi TABLE -->
+        <div class="wifi-table-container" id="wifi-table-container" style="display: none;">
+            <table class="wifi-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="sortable" data-sort="ssid">Tên WiFi (SSID) <span class="sort-icon">⇅</span></th>
+                        <th>Tín hiệu</th>
+                        <th class="sortable active" data-sort="rssi">RSSI <span class="sort-icon">↓</span></th>
+                        <th class="sortable" data-sort="channel">Kênh <span class="sort-icon">⇅</span></th>
+                        <th class="sortable" data-sort="encryption">Bảo mật <span class="sort-icon">⇅</span></th>
+                        <th>Tốc độ ước tính</th>
+                    </tr>
+                </thead>
+                <tbody id="wifi-tbody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div class="empty-state" id="empty-state">
+            <div class="icon">📡</div>
+            <h4>Chưa kết nối ESP32</h4>
+            <p>Nhập địa chỉ IP của ESP32 ở trên và nhấn "Kết nối" để bắt đầu quét WiFi</p>
+        </div>
+
     </div>
 
     <script>
+        // ==================== AUTH CHECK ====================
         const currentUser = localStorage.getItem('currentUser');
-
-        // Nếu chưa đăng nhập → quay về trang đăng nhập
         if (!currentUser) {
             window.location.href = 'index.html';
         } else {
-            // Hiển thị thông tin
-            document.getElementById('user-display').textContent = `Xin chào, ${currentUser}`;
-            document.getElementById('username-display').textContent = currentUser;
-            document.getElementById('welcome-box').innerHTML = `
-                <h2 style="color:#28a745;">Chào mừng <strong>${currentUser}</strong>!</h2>
-                <p>Bạn đang ở trang chủ sau khi đăng nhập thành công.</p>
-                <p style="color:#555;">Đây là trang mới hoàn toàn như bạn yêu cầu.</p>
-            `;
-            document.getElementById('login-time').textContent = new Date().toLocaleString('vi-VN');
+            document.getElementById('user-display').textContent = currentUser;
+            document.getElementById('user-avatar').textContent = currentUser.charAt(0).toUpperCase();
         }
 
-        // Đăng xuất
-        function logout() {
+        // ==================== GLOBAL STATE ====================
+        let esp32Ip = '';
+        let isConnected = false;
+        let autoRefreshInterval = null;
+        let isScanning = false;
+
+        // DOM elements
+        const ipInput = document.getElementById('esp32-ip');
+        const btnConnect = document.getElementById('btn-connect');
+        const btnScan = document.getElementById('btn-scan');
+        const statusBar = document.getElementById('status-bar');
+        const toolbar = document.getElementById('toolbar');
+        const tableContainer = document.getElementById('wifi-table-container');
+        const emptyState = document.getElementById('empty-state');
+        const wifiTbody = document.getElementById('wifi-tbody');
+        const toggleAutoRefresh = document.getElementById('toggle-auto-refresh');
+
+        // Load saved IP
+        const savedIp = localStorage.getItem('esp32_ip');
+        if (savedIp) ipInput.value = savedIp;
+
+        // ==================== TOAST SYSTEM ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${message}`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ==================== FORMAT HELPERS ====================
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${h}h ${m}m ${s}s`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+
+        function getSignalClass(quality) {
+            if (quality >= 80) return 'excellent';
+            if (quality >= 60) return 'good';
+            if (quality >= 40) return 'fair';
+            if (quality >= 20) return 'weak';
+            return 'very-weak';
+        }
+
+        function getSignalLabel(quality) {
+            if (quality >= 80) return 'Rất mạnh';
+            if (quality >= 60) return 'Mạnh';
+            if (quality >= 40) return 'Trung bình';
+            if (quality >= 20) return 'Yếu';
+            return 'Rất yếu';
+        }
+
+        function getRssiColor(rssi) {
+            if (rssi >= -50) return '#22c55e';
+            if (rssi >= -60) return '#3b82f6';
+            if (rssi >= -70) return '#f59e0b';
+            if (rssi >= -80) return '#f97316';
+            return '#ef4444';
+        }
+
+        function createSignalBars(quality) {
+            const signalClass = getSignalClass(quality);
+            let activeBars;
+            if (quality >= 80) activeBars = 5;
+            else if (quality >= 60) activeBars = 4;
+            else if (quality >= 40) activeBars = 3;
+            else if (quality >= 20) activeBars = 2;
+            else activeBars = 1;
+
+            let bars = '';
+            for (let i = 1; i <= 5; i++) {
+                bars += `<div class="bar ${i <= activeBars ? 'active' : ''}"></div>`;
+            }
+            return `<div class="signal-bars ${signalClass}">${bars}</div>`;
+        }
+
+        // ==================== CONNECT TO ESP32 ====================
+        btnConnect.addEventListener('click', async () => {
+            const ip = ipInput.value.trim();
+            if (!ip) {
+                showToast('Vui lòng nhập địa chỉ IP của ESP32', 'error');
+                ipInput.focus();
+                return;
+            }
+
+            // Validate IP format
+            const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            if (!ipRegex.test(ip)) {
+                showToast('Địa chỉ IP không hợp lệ', 'error');
+                return;
+            }
+
+            esp32Ip = ip;
+            localStorage.setItem('esp32_ip', ip);
+
+            btnConnect.disabled = true;
+            btnConnect.innerHTML = '<span class="loading-spinner"></span> Đang kết nối...';
+
+            try {
+                const response = await fetch(`http://${esp32Ip}/api/status`, {
+                    signal: AbortSignal.timeout(5000)
+                });
+                const data = await response.json();
+
+                isConnected = true;
+
+                // Update status bar
+                document.getElementById('stat-status').innerHTML = 
+                    `<span class="status-dot online"></span> Online`;
+                document.getElementById('stat-ip').textContent = data.ip || esp32Ip;
+                document.getElementById('stat-uptime').textContent = formatUptime(data.uptime || 0);
+
+                statusBar.style.display = 'grid';
+                toolbar.style.display = 'flex';
+                emptyState.style.display = 'none';
+
+                showToast(`Đã kết nối ESP32 tại ${esp32Ip}`, 'success');
+
+                // Auto scan
+                scanWiFi();
+
+            } catch (error) {
+                isConnected = false;
+                showToast(`Không thể kết nối ESP32 tại ${esp32Ip}. Kiểm tra IP và đảm bảo cùng mạng LAN.`, 'error');
+                
+                document.getElementById('stat-status').innerHTML = 
+                    `<span class="status-dot offline"></span> Không kết nối`;
+                statusBar.style.display = 'grid';
+            }
+
+            btnConnect.disabled = false;
+            btnConnect.innerHTML = isConnected ? '✅ Đã kết nối' : 'Kết nối';
+        });
+
+        // ==================== SCAN WiFi ====================
+        async function scanWiFi() {
+            if (!esp32Ip || isScanning) return;
+
+            isScanning = true;
+            btnScan.disabled = true;
+            btnScan.classList.add('scanning');
+            btnScan.innerHTML = '<span class="loading-spinner"></span> Đang quét...';
+
+            try {
+                const response = await fetch(`http://${esp32Ip}/api/scan`, {
+                    signal: AbortSignal.timeout(15000) // Scan takes time
+                });
+                const data = await response.json();
+
+                renderWiFiTable(data.networks || []);
+
+                // Update stats
+                document.getElementById('stat-networks').textContent = data.totalNetworks || 0;
+                document.getElementById('network-count').textContent = data.totalNetworks || 0;
+
+                tableContainer.style.display = 'block';
+
+                showToast(`Tìm thấy ${data.totalNetworks} mạng WiFi`, 'success');
+
+                // Update status
+                try {
+                    const statusRes = await fetch(`http://${esp32Ip}/api/status`, {
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    const statusData = await statusRes.json();
+                    document.getElementById('stat-uptime').textContent = formatUptime(statusData.uptime || 0);
+                    document.getElementById('stat-status').innerHTML = 
+                        `<span class="status-dot online"></span> Online`;
+                } catch (e) {}
+
+            } catch (error) {
+                showToast('Lỗi khi quét WiFi. Kiểm tra kết nối ESP32.', 'error');
+                document.getElementById('stat-status').innerHTML = 
+                    `<span class="status-dot offline"></span> Mất kết nối`;
+            }
+
+            isScanning = false;
+            btnScan.disabled = false;
+            btnScan.classList.remove('scanning');
+            btnScan.innerHTML = '<span>🔄</span> Quét WiFi';
+        }
+
+        btnScan.addEventListener('click', scanWiFi);
+
+        // ==================== RENDER TABLE ====================
+        let allNetworks = []; // Store for filtering
+        let currentSort = { key: 'rssi', desc: true };
+
+        function renderWiFiTable(networks, isFiltered = false) {
+            if (!isFiltered) allNetworks = [...networks];
+            
+            // Sort
+            networks.sort((a, b) => {
+                let va = a[currentSort.key], vb = b[currentSort.key];
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (currentSort.desc) return va > vb ? -1 : va < vb ? 1 : 0;
+                return va < vb ? -1 : va > vb ? 1 : 0;
+            });
+
+            wifiTbody.innerHTML = '';
+
+            networks.forEach((net, index) => {
+                const tr = document.createElement('tr');
+                tr.style.animationDelay = `${index * 0.04}s`;
+
+                const ssidDisplay = net.ssid 
+                    ? `<span class="ssid-name">${escapeHtml(net.ssid)}</span>` 
+                    : `<span class="ssid-hidden">[Ẩn tên]</span>`;
+
+                const isSecure = net.encryption !== 'Open';
+                const wifiIcon = isSecure ? '🔒' : '🔓';
+
+                tr.innerHTML = `
+                    <td style="color: rgba(255,255,255,0.4); font-weight: 600;">${index + 1}</td>
+                    <td>
+                        <div class="ssid-cell">
+                            <span class="wifi-icon">${wifiIcon}</span>
+                            ${ssidDisplay}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="signal-badge">
+                            ${createSignalBars(net.signalQuality)}
+                            <span style="color: ${getRssiColor(net.rssi)}; font-size: 0.78rem;">
+                                ${getSignalLabel(net.signalQuality)}
+                            </span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="rssi-value" style="color: ${getRssiColor(net.rssi)}">
+                            ${net.rssi} dBm
+                        </span>
+                    </td>
+                    <td>
+                        <span class="channel-badge">${net.channel}</span>
+                    </td>
+                    <td>
+                        <span class="encryption-badge ${isSecure ? 'secure' : 'open'}">
+                            ${net.encryption}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="speed-value">⚡ ${net.estimatedSpeed}</span>
+                    </td>
+                `;
+                wifiTbody.appendChild(tr);
+            });
+
+            // Update chart & stats if not just a filter
+            if (!isFiltered) {
+                renderChart(networks);
+                updateStats(networks);
+                document.getElementById('stats-panel').style.display = 'grid';
+                document.getElementById('chart-container').style.display = 'block';
+            }
+        }
+
+        // ==================== SEARCH / FILTER ====================
+        document.getElementById('search-wifi').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            if (!q) {
+                renderWiFiTable(allNetworks, true);
+                return;
+            }
+            const filtered = allNetworks.filter(n => 
+                (n.ssid && n.ssid.toLowerCase().includes(q)) ||
+                n.encryption.toLowerCase().includes(q) ||
+                String(n.channel).includes(q)
+            );
+            renderWiFiTable(filtered, true);
+        });
+
+        // ==================== SORTABLE COLUMNS ====================
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort;
+                if (currentSort.key === key) {
+                    currentSort.desc = !currentSort.desc;
+                } else {
+                    currentSort = { key, desc: key === 'rssi' };
+                }
+                // Update icons
+                document.querySelectorAll('.sortable').forEach(el => {
+                    el.classList.remove('active');
+                    el.querySelector('.sort-icon').textContent = '⇅';
+                });
+                th.classList.add('active');
+                th.querySelector('.sort-icon').textContent = currentSort.desc ? '↓' : '↑';
+                renderWiFiTable(allNetworks, true);
+            });
+        });
+
+        // ==================== SIGNAL CHART ====================
+        function renderChart(networks) {
+            const chart = document.getElementById('signal-chart');
+            chart.innerHTML = '';
+            const top10 = [...networks].sort((a,b) => b.rssi - a.rssi).slice(0, 10);
+            
+            top10.forEach((net, i) => {
+                const pct = net.signalQuality;
+                const color = getRssiColor(net.rssi);
+                const name = net.ssid || '[Ẩn]';
+                const row = document.createElement('div');
+                row.className = 'chart-row';
+                row.innerHTML = `
+                    <div class="chart-label" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+                    <div class="chart-bar-bg">
+                        <div class="chart-bar-fill" data-value="${net.rssi} dBm" 
+                             style="width: 0; background: linear-gradient(90deg, ${color}88, ${color});"></div>
+                    </div>
+                `;
+                chart.appendChild(row);
+                // Animate
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        row.querySelector('.chart-bar-fill').style.width = Math.max(pct, 5) + '%';
+                    }, i * 60);
+                });
+            });
+        }
+
+        // ==================== STATISTICS ====================
+        function updateStats(networks) {
+            if (!networks.length) return;
+            const sorted = [...networks].sort((a,b) => b.rssi - a.rssi);
+            const strongest = sorted[0];
+            const weakest = sorted[sorted.length - 1];
+            const avgRssi = Math.round(networks.reduce((s,n) => s + n.rssi, 0) / networks.length);
+            const securePct = Math.round(networks.filter(n => n.encryption !== 'Open').length / networks.length * 100);
+
+            animateValue('stat-strongest', strongest.rssi + ' dBm');
+            animateValue('stat-weakest', weakest.rssi + ' dBm');
+            animateValue('stat-avg-rssi', avgRssi + ' dBm');
+            animateValue('stat-secure-pct', securePct + '%');
+        }
+
+        function animateValue(id, value) {
+            const el = document.getElementById(id);
+            el.style.transform = 'scale(0.8)';
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.textContent = value;
+                el.style.transition = 'all 0.4s cubic-bezier(0.34,1.56,0.64,1)';
+                el.style.transform = 'scale(1)';
+                el.style.opacity = '1';
+            }, 100);
+        }
+
+        // ==================== EXPORT CSV ====================
+        document.getElementById('btn-export').addEventListener('click', () => {
+            if (!allNetworks.length) {
+                showToast('Chưa có dữ liệu để xuất', 'error');
+                return;
+            }
+            const headers = ['SSID', 'RSSI (dBm)', 'Channel', 'Encryption', 'Signal Quality (%)', 'Estimated Speed'];
+            const rows = allNetworks.map(n => [
+                '"' + (n.ssid || '[Hidden]') + '"',
+                n.rssi, n.channel, n.encryption, n.signalQuality, '"' + n.estimatedSpeed + '"'
+            ]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wifi_scan_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Đã xuất file CSV', 'success');
+        });
+
+        // ==================== REAL-TIME CLOCK ====================
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('realtime-clock').textContent = now.toLocaleTimeString('vi-VN');
+            document.getElementById('realtime-date').textContent = now.toLocaleDateString('vi-VN', { 
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+            });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ==================== AUTO REFRESH ====================
+        toggleAutoRefresh.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                autoRefreshInterval = setInterval(scanWiFi, 10000);
+                showToast('Tự động quét mỗi 10 giây', 'info');
+            } else {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                showToast('Đã tắt tự động quét', 'info');
+            }
+        });
+
+        // ==================== LOGOUT ====================
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            clearInterval(autoRefreshInterval);
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
+        });
+
+        // ==================== HELPER: ESCAPE HTML ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        document.getElementById('btn-logout').addEventListener('click', logout);
-        document.getElementById('btn-logout-bottom').addEventListener('click', logout);
+        // ==================== KEYBOARD SHORTCUTS ====================
+        ipInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') btnConnect.click();
+        });
+
+        // ==================== INIT LOG ====================
+        console.log('%c📡 ESP32 WiFi Scanner Dashboard - Pro Edition!', 
+            'color: #7b2ff7; font-size: 14px; font-weight: bold');
     </script>
 </body>
 </html>
